@@ -26,6 +26,16 @@ export const siteConfig = {
   availability: "Open to contract work",
 };
 
+export const heroRoles = [
+  "Software Engineer",
+  "Contract Developer",
+  "Full-stack Builder",
+  "Systems Architect",
+];
+
+export const heroTagline =
+  "I help teams ship dependable software — from architecture and APIs to polished, performant interfaces.";
+
 export const aboutContent = {
   headline: "I build software that ships and scales.",
   paragraphs: [

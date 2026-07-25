@@ -1,0 +1,47 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { heroRoles } from "@/lib/data";
+
+export function RoleRotator() {
+  const [index, setIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setReducedMotion(
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }, []);
+
+  useEffect(() => {
+    if (reducedMotion || heroRoles.length <= 1) return;
+
+    const interval = window.setInterval(() => {
+      setVisible(false);
+      window.setTimeout(() => {
+        setIndex((current) => (current + 1) % heroRoles.length);
+        setVisible(true);
+      }, 280);
+    }, 3000);
+
+    return () => window.clearInterval(interval);
+  }, [reducedMotion]);
+
+  return (
+    <p
+      className="role-rotator mx-auto mb-5 max-w-xl text-xl font-medium text-site-accent md:text-2xl"
+      aria-live={mounted ? "polite" : "off"}
+    >
+      <span
+        className={
+          mounted && !visible ? "role-rotator-hidden" : "role-rotator-visible"
+        }
+      >
+        {heroRoles[index]}
+      </span>
+    </p>
+  );
+}
