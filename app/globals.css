@@ -1,0 +1,186 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+:root {
+  --site-bg: oklch(0.96 0.008 260);
+  --site-fg: oklch(0.18 0.02 260);
+  --site-fg-muted: oklch(0.18 0.02 260 / 0.65);
+  --site-fg-subtle: oklch(0.18 0.02 260 / 0.5);
+  --site-fg-faint: oklch(0.18 0.02 260 / 0.4);
+  --site-border: oklch(0 0 0 / 0.1);
+  --site-glass-bg: oklch(1 0 0 / 0.55);
+  --site-glass-hover: oklch(1 0 0 / 0.7);
+  --site-nav-bg: oklch(0.96 0.008 260 / 0.85);
+  --site-accent: oklch(0.5 0.2 290);
+  --site-accent-success: oklch(0.42 0.14 150);
+  --site-grid-line: oklch(0 0 0 / 0.06);
+  --site-hero-fade: oklch(0.96 0.008 260);
+  --site-selection: oklch(0.55 0.2 260 / 0.25);
+  --site-gradient-1: oklch(0.35 0.14 260);
+  --site-gradient-2: oklch(0.42 0.18 290);
+  --site-gradient-3: oklch(0.38 0.14 200);
+}
+
+.dark {
+  --site-bg: oklch(0.12 0.02 260);
+  --site-fg: oklch(0.95 0.01 260);
+  --site-fg-muted: oklch(0.95 0.01 260 / 0.7);
+  --site-fg-subtle: oklch(0.95 0.01 260 / 0.55);
+  --site-fg-faint: oklch(0.95 0.01 260 / 0.4);
+  --site-border: oklch(1 0 0 / 0.1);
+  --site-glass-bg: oklch(1 0 0 / 0.05);
+  --site-glass-hover: oklch(1 0 0 / 0.07);
+  --site-nav-bg: oklch(0.12 0.02 260 / 0.85);
+  --site-accent: oklch(0.7 0.18 290);
+  --site-accent-success: oklch(0.75 0.15 150);
+  --site-grid-line: oklch(1 0 0 / 0.03);
+  --site-hero-fade: oklch(0.12 0.02 260);
+  --site-selection: oklch(0.55 0.2 260 / 0.4);
+  --site-gradient-1: oklch(0.85 0.12 260);
+  --site-gradient-2: oklch(0.7 0.18 290);
+  --site-gradient-3: oklch(0.75 0.15 200);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--site-bg);
+  color: var(--site-fg);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::selection {
+  background: var(--site-selection);
+}
+
+.section-container {
+  @apply mx-auto w-full max-w-6xl px-6 py-24 md:px-8;
+}
+
+.glass-panel {
+  border: 1px solid var(--site-border);
+  background: var(--site-glass-bg);
+  @apply rounded-2xl backdrop-blur-md;
+}
+
+.glass-panel:hover {
+  border-color: color-mix(in oklch, var(--site-border) 100%, var(--site-fg) 20%);
+  background: var(--site-glass-hover);
+}
+
+.text-site-muted {
+  color: var(--site-fg-muted);
+}
+
+.text-site-subtle {
+  color: var(--site-fg-subtle);
+}
+
+.text-site-faint {
+  color: var(--site-fg-faint);
+}
+
+.text-site-accent {
+  color: var(--site-accent);
+}
+
+.text-site-success {
+  color: var(--site-accent-success);
+}
+
+.border-site {
+  border-color: var(--site-border);
+}
+
+.bg-nav-scrolled {
+  background: var(--site-nav-bg);
+}
+
+.bg-mobile-menu {
+  background: color-mix(in oklch, var(--site-nav-bg) 95%, transparent);
+}
+
+.hero-fade {
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    transparent,
+    var(--site-hero-fade)
+  );
+}
+
+.gradient-text {
+  background: linear-gradient(
+    135deg,
+    var(--site-gradient-1) 0%,
+    var(--site-gradient-2) 50%,
+    var(--site-gradient-3) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(var(--site-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--site-grid-line) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black, transparent);
+}
+
+.nav-link {
+  color: var(--site-fg-subtle);
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--site-fg);
+}
+
+.nav-logo {
+  color: color-mix(in oklch, var(--site-fg) 90%, transparent);
+  transition: color 0.2s ease;
+}
+
+.nav-logo:hover {
+  color: var(--site-fg);
+}
+
+.nav-menu-line {
+  background: var(--site-fg);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.8s ease-out both;
+}
+
+.animate-fade-up-delay-1 {
+  animation: fade-up 0.8s ease-out 0.15s both;
+}
+
+.animate-fade-up-delay-2 {
+  animation: fade-up 0.8s ease-out 0.3s both;
+}
+
+.animate-fade-up-delay-3 {
+  animation: fade-up 0.8s ease-out 0.45s both;
+}
