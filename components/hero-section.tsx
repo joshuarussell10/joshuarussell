@@ -1,15 +1,16 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@heroui/react";
-import { useHeroInteraction } from "@/components/hero-network-canvas";
+import { useHeroInteraction } from "@/components/hero-webgl/use-hero-interaction";
 import { RoleRotator } from "@/components/role-rotator";
 import { heroTagline, siteConfig } from "@/lib/data";
 
-const HeroNetworkCanvas = dynamic(
+const HeroMorphCanvas = dynamic(
   () =>
-    import("@/components/hero-network-canvas").then(
-      (mod) => mod.HeroNetworkCanvas
+    import("@/components/hero-webgl/hero-morph-canvas").then(
+      (mod) => mod.HeroMorphCanvas
     ),
   { ssr: false }
 );
@@ -17,14 +18,33 @@ const HeroNetworkCanvas = dynamic(
 export function HeroSection() {
   const { mouse, interactive, onPointerMove, onPointerLeave } =
     useHeroInteraction();
+  const [shapeStep, setShapeStep] = useState(0);
+
+  const advanceShape = useCallback(() => {
+    setShapeStep((step) => step + 1);
+  }, []);
+
+  const handleHeroClick = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      const target = event.target as HTMLElement;
+      if (target.closest("a, button, [role='button']")) return;
+      advanceShape();
+    },
+    [advanceShape]
+  );
 
   return (
     <section
       className="hero-editorial relative flex min-h-screen flex-col items-center justify-center overflow-hidden pt-20"
       onPointerMove={onPointerMove}
       onPointerLeave={onPointerLeave}
+      onClick={handleHeroClick}
     >
-      <HeroNetworkCanvas mouse={mouse} interactive={interactive} />
+      <HeroMorphCanvas
+        shapeStep={shapeStep}
+        mouse={mouse}
+        interactive={interactive}
+      />
 
       <div className="section-container relative z-10 flex flex-col items-center py-16 text-center">
         <p className="animate-fade-up mb-6 font-mono text-xs uppercase tracking-[0.2em] text-site-faint">
