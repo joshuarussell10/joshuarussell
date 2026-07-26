@@ -42,9 +42,14 @@ export type LanyardPalette = {
  */
 export const lanyardConfig = {
   camera: {
-    position: [0, 0, 6.9] as [number, number, number],
-    lookAt: [0, 0, 0] as [number, number, number],
-    fov: 30,
+    position: [0.12, -0.35, 7.6] as [number, number, number],
+    /**
+     * Aimed low and left so the badge sits upper-right in the tall side
+     * canvas: straps run off the top edge, and the soft shadow has room to
+     * fall away left and down without hitting the frame.
+     */
+    lookAt: [-0.48, -0.45, 0] as [number, number, number],
+    fov: 27,
   },
   card: {
     width: 1.16,
@@ -67,11 +72,11 @@ export const lanyardConfig = {
   },
   webbing: {
     /** Pinned ends sit just above the viewport so the strands run off-frame. */
-    anchorY: 2.16,
-    anchorSpread: 0.66,
+    anchorY: 2.85,
+    anchorSpread: 0.82,
     anchorZ: -0.03,
     /** Where the strands meet at rest; sets the overall rope length. */
-    crimpRestY: 0.95,
+    crimpRestY: 0.62,
     /** 12 mm flat woven polyester at the card's 54 mm reference width. */
     width: 0.26,
     thickness: 0.014,

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Environment, Lightformer, RoundedBox, SoftShadows } from "@react-three/drei";
+import { Environment, Lightformer, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import type { MousePosition } from "@/lib/hero-webgl/config";
 import {
@@ -38,6 +38,35 @@ const { card, webbing, hardware } = lanyardConfig;
 const FACE_OFFSET = card.thickness / 2 + 0.0005;
 const RING_LOCAL_Y = card.height / 2 - card.slot.inset;
 
+/** Soft elliptical wall shadow that never clips at the shadow-map frustum. */
+function createSoftShadowTexture() {
+  const size = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return new THREE.Texture();
+
+  const gradient = ctx.createRadialGradient(
+    size * 0.5,
+    size * 0.46,
+    size * 0.08,
+    size * 0.5,
+    size * 0.5,
+    size * 0.5
+  );
+  gradient.addColorStop(0, "rgba(0,0,0,0.55)");
+  gradient.addColorStop(0.35, "rgba(0,0,0,0.22)");
+  gradient.addColorStop(0.7, "rgba(0,0,0,0.06)");
+  gradient.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.NoColorSpace;
+  return texture;
+}
+
 /**
  * Re-resolves the font stacks once webfonts finish loading, so the printed
  * artwork is redrawn in Geist rather than the fallback face.
@@ -70,11 +99,10 @@ function Hardware({ material }: { material: THREE.Material }) {
         smoothness={4}
         position={[0, -hardware.crimpHeight * 0.5 + 0.05, 0]}
         material={material}
-        castShadow
       />
 
       {/* Pressed ridge across the crimp face. */}
-      <mesh position={[0, -0.02, hardware.crimpDepth * 0.5]} material={material} castShadow>
+      <mesh position={[0, -0.02, hardware.crimpDepth * 0.5]} material={material}>
         <boxGeometry args={[hardware.crimpWidth * 0.82, 0.012, 0.006]} />
       </mesh>
 
@@ -84,19 +112,18 @@ function Hardware({ material }: { material: THREE.Material }) {
           position={[side * hardware.crimpWidth * 0.3, -0.055, hardware.crimpDepth * 0.5]}
           rotation={[Math.PI / 2, 0, 0]}
           material={material}
-          castShadow
         >
           <cylinderGeometry args={[0.009, 0.009, 0.006, 12]} />
         </mesh>
       ))}
 
       {/* Swivel collar and stem down to the hook. */}
-      <mesh position={[0, -0.09, 0]} material={material} castShadow>
+      <mesh position={[0, -0.09, 0]} material={material}>
         <cylinderGeometry
           args={[hardware.stemRadius * 1.6, hardware.stemRadius * 1.6, 0.016, 20]}
         />
       </mesh>
-      <mesh position={[0, -0.155, 0]} material={material} castShadow>
+      <mesh position={[0, -0.155, 0]} material={material}>
         <cylinderGeometry args={[hardware.stemRadius, hardware.stemRadius, 0.13, 20]} />
       </mesh>
 
@@ -105,7 +132,6 @@ function Hardware({ material }: { material: THREE.Material }) {
         position={[0, -0.26, 0]}
         rotation={[0, 0, Math.PI / 2 + gap / 2]}
         material={material}
-        castShadow
       >
         <torusGeometry
           args={[hardware.hookRadius, hardware.hookTube, 14, 48, Math.PI * 2 - gap]}
@@ -127,6 +153,7 @@ export function LanyardBadgeScene({
 
   const cardRef = useRef<THREE.Group>(null);
   const hardwareRef = useRef<THREE.Group>(null);
+  const softShadowRef = useRef<THREE.Mesh>(null);
 
   const simulation = useMemo(() => {
     const sim = new LanyardSimulation();
@@ -157,6 +184,7 @@ export function LanyardBadgeScene({
   }, [palette, identity, anisotropy, fonts]);
 
   const hologramThickness = useMemo(() => createHologramThicknessTexture(), []);
+  const softShadowTexture = useMemo(() => createSoftShadowTexture(), []);
 
   const metalMaterial = useMemo(
     () =>
@@ -173,6 +201,7 @@ export function LanyardBadgeScene({
   useEffect(() => () => webbingTextures.dispose(), [webbingTextures]);
   useEffect(() => () => metalMaterial.dispose(), [metalMaterial]);
   useEffect(() => () => hologramThickness.dispose(), [hologramThickness]);
+  useEffect(() => () => softShadowTexture.dispose(), [softShadowTexture]);
 
   const cardBodyGeometry = useMemo(() => createCardBodyGeometry(), []);
   const cardFaceGeometry = useMemo(() => createCardFaceGeometry(), []);
@@ -259,12 +288,16 @@ export function LanyardBadgeScene({
       hardwareGroup.quaternion.setFromRotationMatrix(matrix);
       hardwareGroup.position.copy(simulation.crimp);
     }
+
+    const softShadow = softShadowRef.current;
+    if (softShadow) {
+      softShadow.position.x = simulation.cardPosition.x - 0.08;
+      softShadow.position.y = simulation.cardPosition.y - 0.12;
+    }
   });
 
   return (
     <>
-      <SoftShadows size={38} samples={16} focus={0} />
-
       {/* Compact studio rig baked into a cubemap for the metal reflections. */}
       <Environment resolution={256} frames={1}>
         <color attach="background" args={[palette.environment]} />
@@ -309,30 +342,28 @@ export function LanyardBadgeScene({
       <ambientLight intensity={0.18} />
       <hemisphereLight intensity={0.16} groundColor="#1a1c28" />
 
-      <directionalLight
-        position={[1.6, 3.6, 5.4]}
-        intensity={2.4}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.01}
-        shadow-camera-near={1}
-        shadow-camera-far={12}
-        shadow-camera-left={-1.9}
-        shadow-camera-right={1.9}
-        shadow-camera-top={2.6}
-        shadow-camera-bottom={-2.6}
-      />
+      <directionalLight position={[1.8, 4.2, 5.8]} intensity={2.4} />
       <directionalLight position={[-3.4, 1.2, 2.6]} intensity={0.5} color="#c7d2fe" />
       <directionalLight position={[-1.2, 0.4, -4]} intensity={0.85} color="#8fa2ff" />
 
-      {/* Wall behind the badge, visible only through the shadow it catches. */}
-      <mesh position={[0, 0, -0.6]} receiveShadow>
-        <planeGeometry args={[14, 14]} />
-        <shadowMaterial transparent opacity={0.19} color={palette.shadow} />
+      {/* Painted contact shadow — stays inside the frame and tracks the badge. */}
+      <mesh
+        ref={softShadowRef}
+        position={[0, -0.2, -0.55]}
+        scale={[2.35, 3.05, 1]}
+        renderOrder={-1}
+      >
+        <planeGeometry />
+        <meshBasicMaterial
+          map={softShadowTexture}
+          color={palette.shadow}
+          transparent
+          opacity={0.55}
+          depthWrite={false}
+        />
       </mesh>
 
-      <mesh geometry={leftBandGeometry} castShadow receiveShadow frustumCulled={false}>
+      <mesh geometry={leftBandGeometry} frustumCulled={false}>
         <meshPhysicalMaterial
           map={webbingTextures.map}
           normalMap={webbingTextures.normalMap}
@@ -347,7 +378,7 @@ export function LanyardBadgeScene({
         />
       </mesh>
 
-      <mesh geometry={rightBandGeometry} castShadow receiveShadow frustumCulled={false}>
+      <mesh geometry={rightBandGeometry} frustumCulled={false}>
         <meshPhysicalMaterial
           map={webbingTextures.map}
           normalMap={webbingTextures.normalMap}
@@ -367,7 +398,7 @@ export function LanyardBadgeScene({
       </group>
 
       <group ref={cardRef}>
-        <mesh geometry={cardBodyGeometry} castShadow receiveShadow>
+        <mesh geometry={cardBodyGeometry}>
           <meshPhysicalMaterial
             color={palette.cardCore}
             metalness={0}
@@ -378,7 +409,7 @@ export function LanyardBadgeScene({
           />
         </mesh>
 
-        <mesh geometry={cardFaceGeometry} position={[0, 0, FACE_OFFSET]} receiveShadow>
+        <mesh geometry={cardFaceGeometry} position={[0, 0, FACE_OFFSET]}>
           <meshPhysicalMaterial
             map={badgeTextures.front}
             clearcoatRoughnessMap={badgeTextures.gloss}
@@ -394,7 +425,6 @@ export function LanyardBadgeScene({
           geometry={cardFaceGeometry}
           position={[0, 0, -FACE_OFFSET]}
           rotation={[0, Math.PI, 0]}
-          receiveShadow
         >
           <meshPhysicalMaterial
             map={badgeTextures.back}
@@ -435,7 +465,6 @@ export function LanyardBadgeScene({
           position={[0, RING_LOCAL_Y, 0]}
           rotation={[0, Math.PI / 2, 0]}
           material={metalMaterial}
-          castShadow
         >
           <torusGeometry args={[hardware.ringRadius, hardware.ringTube, 16, 40]} />
         </mesh>

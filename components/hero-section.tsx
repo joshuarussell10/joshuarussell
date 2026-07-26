@@ -50,6 +50,16 @@ export function HeroSection() {
       onPointerMove={onPointerMove}
       onPointerLeave={onPointerLeave}
     >
+      {showBadge ? (
+        <div className="hero-visual pointer-events-none absolute inset-y-0 right-0 z-0 hidden w-[min(56%,720px)] lg:block">
+          <HeroBadgeCanvas
+            mouse={mouse}
+            interactive={interactive}
+            pointerActive={pointerActive}
+          />
+        </div>
+      ) : null}
+
       <div className="section-container relative z-10 py-12 md:py-16 lg:py-20">
         <div className="hero-split grid grid-cols-1 items-center lg:grid-cols-2 lg:gap-12 xl:gap-16">
           <div className="hero-copy flex flex-col items-center text-center lg:items-start lg:text-left">
@@ -89,15 +99,8 @@ export function HeroSection() {
             </div>
           </div>
 
-          {showBadge ? (
-            <div className="hero-visual flex w-full justify-end">
-              <HeroBadgeCanvas
-                mouse={mouse}
-                interactive={interactive}
-                pointerActive={pointerActive}
-              />
-            </div>
-          ) : null}
+          {/* Reserve the right column so copy stays left-weighted next to the badge. */}
+          {showBadge ? <div className="hidden lg:block" aria-hidden /> : null}
         </div>
       </div>
 

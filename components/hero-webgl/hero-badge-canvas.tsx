@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
+import { Suspense, useLayoutEffect, useMemo } from "react";
 import { useTheme } from "next-themes";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { LanyardBadgeScene } from "@/components/hero-webgl/lanyard-badge-scene";
 import type { BadgeIdentity } from "@/lib/hero-webgl/badge-textures";
@@ -15,6 +15,20 @@ type HeroBadgeCanvasProps = {
   interactive: boolean;
   pointerActive: boolean;
 };
+
+/** Keeps the perspective camera aimed at the framed look-at after resizes. */
+function CameraRig() {
+  const camera = useThree((state) => state.camera);
+  const size = useThree((state) => state.size);
+
+  useLayoutEffect(() => {
+    const [x, y, z] = lanyardConfig.camera.lookAt;
+    camera.lookAt(x, y, z);
+    camera.updateProjectionMatrix();
+  }, [camera, size.width, size.height]);
+
+  return null;
+}
 
 export function HeroBadgeCanvas({
   mouse,
@@ -41,22 +55,14 @@ export function HeroBadgeCanvas({
   );
 
   return (
-    <div
-      className="hero-badge-canvas animate-fade-up-delay-1 relative h-[min(68vh,560px)] w-full max-w-[360px]"
-      aria-hidden
-    >
+    <div className="hero-badge-canvas animate-fade-up-delay-1 relative h-full w-full" aria-hidden>
       <div className="hero-webgl-glow absolute inset-0 scale-125 opacity-60" />
       <Canvas
-        shadows
         camera={{
           position: lanyardConfig.camera.position,
           fov: lanyardConfig.camera.fov,
         }}
-        onCreated={({ camera, gl }) => {
-          const [x, y, z] = lanyardConfig.camera.lookAt;
-          camera.lookAt(x, y, z);
-          camera.updateProjectionMatrix();
-          gl.shadowMap.type = THREE.PCFSoftShadowMap;
+        onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.05;
         }}
@@ -68,6 +74,7 @@ export function HeroBadgeCanvas({
         }}
         style={{ background: "transparent", width: "100%", height: "100%" }}
       >
+        <CameraRig />
         <Suspense fallback={null}>
           <LanyardBadgeScene
             mouse={mouse}

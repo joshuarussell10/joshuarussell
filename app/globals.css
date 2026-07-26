@@ -156,6 +156,7 @@ body {
 .hero-badge-canvas {
   touch-action: none;
   flex-shrink: 0;
+  overflow: visible;
 }
 
 .hero-split {
