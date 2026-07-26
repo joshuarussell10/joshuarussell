@@ -37,6 +37,8 @@ const { card, webbing, hardware } = lanyardConfig;
 /** The bevelled lid sits at the full half-thickness; print rides just above it. */
 const FACE_OFFSET = card.thickness / 2 + 0.0005;
 const RING_LOCAL_Y = card.height / 2 - card.slot.inset;
+/** Prefer the clasp face toward the camera when the strap plane is ambiguous. */
+const VIEW_AXIS = new THREE.Vector3(0, 0, 1);
 
 /** Soft elliptical wall shadow that never clips at the shadow-map frustum. */
 function createSoftShadowTexture() {
@@ -141,6 +143,35 @@ function Hardware({ material }: { material: THREE.Material }) {
   );
 }
 
+/**
+ * Short lengths of webbing gripped inside the barrel. Parented to the clasp so
+ * they transform with the metal and can never depth-sort behind it the way a
+ * free rope tip can when the V folds under interaction.
+ */
+function CrimpWebbingStubs({ material }: { material: THREE.Material }) {
+  const stubHeight = hardware.crimpEntryY + 0.055;
+
+  return (
+    <>
+      {[-1, 1].map((side) => (
+        <mesh
+          key={side}
+          position={[
+            side * hardware.crimpEntrySpread,
+            hardware.crimpEntryY - stubHeight * 0.25,
+            -webbing.thickness * 0.35,
+          ]}
+          material={material}
+        >
+          <boxGeometry
+            args={[webbing.width * 0.42, stubHeight, webbing.thickness * 0.95]}
+          />
+        </mesh>
+      ))}
+    </>
+  );
+}
+
 export function LanyardBadgeScene({
   mouse,
   interactive,
@@ -179,6 +210,7 @@ export function LanyardBadgeScene({
       fonts
     );
     textures.map.anisotropy = anisotropy;
+    textures.plainMap.anisotropy = anisotropy;
     textures.normalMap.anisotropy = anisotropy;
     return textures;
   }, [palette, identity, anisotropy, fonts]);
@@ -193,13 +225,93 @@ export function LanyardBadgeScene({
         metalness: 1,
         roughness: 0.18,
         envMapIntensity: 1.8,
+        // Bias the clasp forward in the depth buffer so thin webbing near the
+        // mouth can't win the depth test and hide the barrel that clamps it.
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -2,
       }),
     [palette.hardware]
+  );
+
+  const webbingMaterial = useMemo(() => {
+    const material = new THREE.MeshPhysicalMaterial({
+      map: webbingTextures.map,
+      normalMap: webbingTextures.normalMap,
+      roughnessMap: webbingTextures.roughnessMap,
+      normalScale: new THREE.Vector2(0.85, 0.85),
+      roughness: 1,
+      metalness: 0,
+      sheen: 0.3,
+      sheenRoughness: 0.8,
+      sheenColor: palette.strapPrint,
+      envMapIntensity: 0.35,
+    });
+
+    // Lower strap (near the clasp) uses plain weave so branding never
+    // compresses or crawls when the rope deforms under the pointer.
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.plainMap = { value: webbingTextures.plainMap };
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          "#include <common>",
+          `#include <common>
+attribute float printMix;
+varying float vPrintMix;`
+        )
+        .replace(
+          "#include <uv_vertex>",
+          `#include <uv_vertex>
+vPrintMix = printMix;`
+        );
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          "#include <common>",
+          `#include <common>
+uniform sampler2D plainMap;
+varying float vPrintMix;`
+        )
+        .replace(
+          "#include <map_fragment>",
+          `#ifdef USE_MAP
+	vec4 sampledDiffuseColor = texture2D( map, vMapUv );
+	vec4 plainDiffuseColor = texture2D( plainMap, vMapUv );
+	sampledDiffuseColor = mix( plainDiffuseColor, sampledDiffuseColor, vPrintMix );
+	#ifdef DECODE_VIDEO_TEXTURE
+		sampledDiffuseColor = sRGBTransferEOTF( sampledDiffuseColor );
+	#endif
+	diffuseColor *= sampledDiffuseColor;
+#endif`
+        );
+    };
+    material.customProgramCacheKey = () => "lanyard-webbing-print-mix";
+
+    return material;
+  }, [webbingTextures, palette.strapPrint]);
+
+  // Plain weave inside the barrel — no branding map, so stubs stay clean.
+  const webbingStubMaterial = useMemo(
+    () =>
+      new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color(palette.strap),
+        normalMap: webbingTextures.normalMap,
+        roughnessMap: webbingTextures.roughnessMap,
+        normalScale: new THREE.Vector2(0.85, 0.85),
+        roughness: 1,
+        metalness: 0,
+        sheen: 0.25,
+        sheenRoughness: 0.85,
+        sheenColor: palette.strapPrint,
+        envMapIntensity: 0.3,
+      }),
+    [webbingTextures, palette.strap, palette.strapPrint]
   );
 
   useEffect(() => () => badgeTextures.dispose(), [badgeTextures]);
   useEffect(() => () => webbingTextures.dispose(), [webbingTextures]);
   useEffect(() => () => metalMaterial.dispose(), [metalMaterial]);
+  useEffect(() => () => webbingMaterial.dispose(), [webbingMaterial]);
+  useEffect(() => () => webbingStubMaterial.dispose(), [webbingStubMaterial]);
   useEffect(() => () => hologramThickness.dispose(), [hologramThickness]);
   useEffect(() => () => softShadowTexture.dispose(), [softShadowTexture]);
 
@@ -224,6 +336,10 @@ export function LanyardBadgeScene({
   }, [cardBodyGeometry, cardFaceGeometry, leftBandGeometry, rightBandGeometry]);
 
   const ringWorld = useMemo(() => new THREE.Vector3(), []);
+  const leftBandTip = useMemo(() => new THREE.Vector3(), []);
+  const rightBandTip = useMemo(() => new THREE.Vector3(), []);
+  const strapLeft = useMemo(() => new THREE.Vector3(), []);
+  const strapRight = useMemo(() => new THREE.Vector3(), []);
   const hardwareBasis = useMemo(
     () => ({
       x: new THREE.Vector3(),
@@ -258,36 +374,81 @@ export function LanyardBadgeScene({
       cardGroup.updateMatrixWorld();
     }
 
+    const hardwareGroup = hardwareRef.current;
+    if (hardwareGroup && cardGroup) {
+      ringWorld.set(0, RING_LOCAL_Y, 0).applyMatrix4(cardGroup.matrixWorld);
+
+      const leftStrand = simulation.leftStrand;
+      const rightStrand = simulation.rightStrand;
+      strapLeft
+        .copy(leftStrand[leftStrand.length - 2])
+        .sub(simulation.crimp);
+      strapRight
+        .copy(rightStrand[rightStrand.length - 2])
+        .sub(simulation.crimp);
+
+      const { x, y, z, matrix } = hardwareBasis;
+      // Hang axis: crimp above the ring, stem and hook reach down toward it.
+      y.copy(simulation.crimp).sub(ringWorld).normalize();
+
+      // Crimp faces with the webbing V — same plane the straps approach in —
+      // rather than the card, so a yawed badge can't tuck the metal behind the
+      // weave the way a free particle at the junction otherwise would.
+      x.copy(strapRight).sub(strapLeft);
+      x.addScaledVector(y, -x.dot(y));
+      if (x.lengthSq() < 1e-8) {
+        x.set(1, 0, 0).applyQuaternion(simulation.cardQuaternion);
+        x.addScaledVector(y, -x.dot(y));
+      }
+      x.normalize();
+
+      z.crossVectors(x, y).normalize();
+      if (z.dot(VIEW_AXIS) < 0) {
+        z.negate();
+        x.negate();
+      }
+      x.crossVectors(y, z).normalize();
+
+      matrix.makeBasis(x, y, z);
+      hardwareGroup.quaternion.setFromRotationMatrix(matrix);
+      // Seat the barrel on the front of the weave, not inside its thickness.
+      hardwareGroup.position
+        .copy(simulation.crimp)
+        .addScaledVector(z, hardware.crimpFrontBias);
+
+      // Two strap ends meet the parented stubs just above the barrel mouth —
+      // the free rope never runs through the metal itself.
+      leftBandTip
+        .copy(simulation.crimp)
+        .addScaledVector(y, hardware.crimpEntryY + 0.04)
+        .addScaledVector(x, -hardware.crimpEntrySpread);
+      rightBandTip
+        .copy(simulation.crimp)
+        .addScaledVector(y, hardware.crimpEntryY + 0.04)
+        .addScaledVector(x, hardware.crimpEntrySpread);
+    } else {
+      leftBandTip.copy(simulation.crimp);
+      rightBandTip.copy(simulation.crimp);
+    }
+
     updateBandGeometry(
       leftBandGeometry,
       simulation.leftStrand,
       webbing.width,
       webbing.thickness,
-      webbing.textureRepeatLength
+      webbing.textureRepeatLength,
+      0,
+      leftBandTip
     );
     updateBandGeometry(
       rightBandGeometry,
       simulation.rightStrand,
       webbing.width,
       webbing.thickness,
-      webbing.textureRepeatLength
+      webbing.textureRepeatLength,
+      0,
+      rightBandTip
     );
-
-    const hardwareGroup = hardwareRef.current;
-    if (hardwareGroup && cardGroup) {
-      ringWorld.set(0, RING_LOCAL_Y, 0).applyMatrix4(cardGroup.matrixWorld);
-
-      const { x, y, z, matrix } = hardwareBasis;
-      y.copy(simulation.crimp).sub(ringWorld).normalize();
-      // Keep the hook's plane square to the ring hanging in the card's slot.
-      z.set(0, 0, 1).applyQuaternion(simulation.cardQuaternion);
-      z.addScaledVector(y, -z.dot(y)).normalize();
-      x.crossVectors(y, z).normalize();
-
-      matrix.makeBasis(x, y, z);
-      hardwareGroup.quaternion.setFromRotationMatrix(matrix);
-      hardwareGroup.position.copy(simulation.crimp);
-    }
 
     const softShadow = softShadowRef.current;
     if (softShadow) {
@@ -363,37 +524,12 @@ export function LanyardBadgeScene({
         />
       </mesh>
 
-      <mesh geometry={leftBandGeometry} frustumCulled={false}>
-        <meshPhysicalMaterial
-          map={webbingTextures.map}
-          normalMap={webbingTextures.normalMap}
-          roughnessMap={webbingTextures.roughnessMap}
-          normalScale={new THREE.Vector2(0.85, 0.85)}
-          roughness={1}
-          metalness={0}
-          sheen={0.3}
-          sheenRoughness={0.8}
-          sheenColor={palette.strapPrint}
-          envMapIntensity={0.35}
-        />
-      </mesh>
+      <mesh geometry={leftBandGeometry} frustumCulled={false} material={webbingMaterial} />
 
-      <mesh geometry={rightBandGeometry} frustumCulled={false}>
-        <meshPhysicalMaterial
-          map={webbingTextures.map}
-          normalMap={webbingTextures.normalMap}
-          roughnessMap={webbingTextures.roughnessMap}
-          normalScale={new THREE.Vector2(0.85, 0.85)}
-          roughness={1}
-          metalness={0}
-          sheen={0.3}
-          sheenRoughness={0.8}
-          sheenColor={palette.strapPrint}
-          envMapIntensity={0.35}
-        />
-      </mesh>
+      <mesh geometry={rightBandGeometry} frustumCulled={false} material={webbingMaterial} />
 
       <group ref={hardwareRef}>
+        <CrimpWebbingStubs material={webbingStubMaterial} />
         <Hardware material={metalMaterial} />
       </group>
 

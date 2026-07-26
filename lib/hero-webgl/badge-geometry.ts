@@ -1,6 +1,11 @@
 import * as THREE from "three";
 import { lanyardConfig } from "@/lib/hero-webgl/lanyard-config";
 
+/** Lower fraction of each strand (toward the clasp) with branding removed. */
+const PLAIN_STRAP_FRACTION = 0.42;
+/** Soft blend rings between printed and plain weave. */
+const PRINT_BLEND_RINGS = 3;
+
 function roundedRectShape(width: number, height: number, radius: number) {
   const w = width / 2;
   const h = height / 2;
@@ -114,6 +119,11 @@ export function createBandGeometry(segments: number) {
     "uv",
     new THREE.BufferAttribute(new Float32Array(rings * VERTS_PER_RING * 2), 2)
   );
+  // 1 = show branding, 0 = plain weave (lower strap near the clasp).
+  geometry.setAttribute(
+    "printMix",
+    new THREE.BufferAttribute(new Float32Array(rings * VERTS_PER_RING), 1)
+  );
 
   const indices: number[] = [];
   for (let i = 0; i < segments; i += 1) {
@@ -142,9 +152,43 @@ const corner = new THREE.Vector3();
 const seedNormal = new THREE.Vector3();
 const viewAxis = new THREE.Vector3(0, 0, 1);
 
+function ringPoint(
+  points: THREE.Vector3[],
+  index: number,
+  endOverride?: THREE.Vector3
+) {
+  if (endOverride && index === points.length - 1) return endOverride;
+  return points[index];
+}
+
+/** Cross-section shrinks into the crimp mouth over the last few rings. */
+function endTaper(index: number, rings: number, taperRings: number) {
+  if (taperRings <= 0) return 1;
+  const fromEnd = rings - 1 - index;
+  if (fromEnd >= taperRings) return 1;
+  const t = fromEnd / taperRings;
+  // Keep a little thickness so the strap still reads as entering the barrel.
+  return 0.12 + 0.88 * t * t;
+}
+
+/** Branding weight by ring: plain near the clasp, printed on the upper run. */
+function printMixForRing(index: number, rings: number) {
+  const fromEnd = rings - 1 - index;
+  const plainRings = Math.max(
+    PRINT_BLEND_RINGS + 1,
+    Math.ceil((rings - 1) * PLAIN_STRAP_FRACTION)
+  );
+  if (fromEnd <= plainRings - PRINT_BLEND_RINGS) return 0;
+  if (fromEnd >= plainRings) return 1;
+  return (fromEnd - (plainRings - PRINT_BLEND_RINGS)) / PRINT_BLEND_RINGS;
+}
+
 /**
  * Sweeps a rectangular cross-section along the point list using parallel
  * transport frames, so the band never spins about its own axis between frames.
+ *
+ * `endOverride` replaces the final ring (the crimp junction) so the woven
+ * band can terminate inside the metal clasp instead of sharing its centre.
  */
 export function updateBandGeometry(
   geometry: THREE.BufferGeometry,
@@ -152,11 +196,14 @@ export function updateBandGeometry(
   width: number,
   thickness: number,
   repeatLength: number,
-  vOffset = 0
+  vOffset = 0,
+  endOverride?: THREE.Vector3,
+  taperRings = 5
 ) {
   const rings = points.length;
   const position = geometry.attributes.position as THREE.BufferAttribute;
   const uv = geometry.attributes.uv as THREE.BufferAttribute;
+  const printMix = geometry.attributes.printMix as THREE.BufferAttribute;
   const halfWidth = width / 2;
   const halfThickness = thickness / 2;
   const edgeU = Math.min(0.5, thickness / width);
@@ -164,10 +211,13 @@ export function updateBandGeometry(
   let arcLength = vOffset;
 
   for (let i = 0; i < rings; i += 1) {
-    const point = points[i];
+    const point = ringPoint(points, i, endOverride);
+    const prev = i > 0 ? ringPoint(points, i - 1, endOverride) : point;
+    const next =
+      i < rings - 1 ? ringPoint(points, i + 1, endOverride) : point;
 
     if (i === 0) {
-      tangent.copy(points[1]).sub(points[0]).normalize();
+      tangent.copy(next).sub(point).normalize();
       // Seed the frame facing the viewer, then transport it down the strand.
       seedNormal
         .copy(viewAxis)
@@ -176,9 +226,9 @@ export function updateBandGeometry(
       faceNormal.copy(seedNormal).normalize();
     } else {
       if (i === rings - 1) {
-        tangent.copy(points[i]).sub(points[i - 1]).normalize();
+        tangent.copy(point).sub(prev).normalize();
       } else {
-        tangent.copy(points[i + 1]).sub(points[i - 1]).normalize();
+        tangent.copy(next).sub(prev).normalize();
       }
 
       rotationAxis.crossVectors(previousTangent, tangent);
@@ -190,7 +240,7 @@ export function updateBandGeometry(
         faceNormal.applyQuaternion(transport);
       }
       faceNormal.addScaledVector(tangent, -faceNormal.dot(tangent)).normalize();
-      arcLength += point.distanceTo(points[i - 1]);
+      arcLength += point.distanceTo(prev);
     }
 
     previousTangent.copy(tangent);
@@ -199,13 +249,17 @@ export function updateBandGeometry(
     // Negated because flipY puts v=0 at the bottom of the source canvas,
     // which would otherwise run the printed branding up the strap mirrored.
     const v = -arcLength / repeatLength;
+    const mix = printMixForRing(i, rings);
     const base = i * VERTS_PER_RING;
+    const taper = endTaper(i, rings, taperRings);
+    const ringHalfWidth = halfWidth * taper;
+    const ringHalfThickness = halfThickness * taper;
 
     // Cross-section corners, walked so each face gets its own vertex pair.
-    const c0 = [halfWidth, halfThickness] as const;
-    const c1 = [-halfWidth, halfThickness] as const;
-    const c2 = [-halfWidth, -halfThickness] as const;
-    const c3 = [halfWidth, -halfThickness] as const;
+    const c0 = [ringHalfWidth, ringHalfThickness] as const;
+    const c1 = [-ringHalfWidth, ringHalfThickness] as const;
+    const c2 = [-ringHalfWidth, -ringHalfThickness] as const;
+    const c3 = [ringHalfWidth, -ringHalfThickness] as const;
 
     const layout: Array<readonly [readonly [number, number], number]> = [
       [c1, 0],
@@ -226,10 +280,12 @@ export function updateBandGeometry(
         .addScaledVector(faceNormal, alongThickness);
       position.setXYZ(base + slot, corner.x, corner.y, corner.z);
       uv.setXY(base + slot, u, v);
+      printMix.setX(base + slot, mix);
     }
   }
 
   position.needsUpdate = true;
   uv.needsUpdate = true;
+  printMix.needsUpdate = true;
   geometry.computeVertexNormals();
 }

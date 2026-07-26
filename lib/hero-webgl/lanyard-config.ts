@@ -93,6 +93,21 @@ export const lanyardConfig = {
     crimpWidth: 0.28,
     crimpHeight: 0.13,
     crimpDepth: 0.055,
+    /**
+     * Local +Y of the hardware group where the webbing enters the crimp.
+     * Matches the top face of the RoundedBox crimp mesh.
+     */
+    crimpEntryY: 0.035,
+    /**
+     * Half-spacing of the two strap ends across the crimp mouth. Keeps the
+     * weave from covering the barrel face the way a single shared tip would.
+     */
+    crimpEntrySpread: 0.048,
+    /**
+     * Push the metal slightly in front of the strap centreline so the clasp
+     * always reads as clamping onto the weave, not sitting inside it.
+     */
+    crimpFrontBias: 0.024,
     stemRadius: 0.024,
     hookRadius: 0.05,
     hookTube: 0.016,

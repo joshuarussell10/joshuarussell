@@ -2,7 +2,10 @@ import * as THREE from "three";
 import type { FontStacks } from "@/lib/hero-webgl/badge-textures";
 
 export type WebbingTextureSet = {
+  /** Weave with branding printed along the strap. */
   map: THREE.CanvasTexture;
+  /** Same weave with no branding — used near the clasp. */
+  plainMap: THREE.CanvasTexture;
   normalMap: THREE.CanvasTexture;
   roughnessMap: THREE.CanvasTexture;
   dispose: () => void;
@@ -225,13 +228,11 @@ export function createWebbingTextures(
 ): WebbingTextureSet {
   const base = new THREE.Color(baseColor);
 
-  const colorCanvas = createCanvas(WIDTH, HEIGHT);
-  const colorCtx = colorCanvas.getContext("2d");
-  if (colorCtx) {
-    colorCtx.fillStyle = baseColor;
-    colorCtx.fillRect(0, 0, WIDTH, HEIGHT);
+  const paintWeave = (ctx: CanvasRenderingContext2D) => {
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
     drawWeave(
-      colorCtx,
+      ctx,
       (warpOnTop, shade) => {
         const tint = base.clone().multiplyScalar(warpOnTop ? shade : shade * 0.9);
         return `rgb(${Math.round(tint.r * 255)},${Math.round(
@@ -240,6 +241,20 @@ export function createWebbingTextures(
       },
       1337
     );
+  };
+
+  const plainCanvas = createCanvas(WIDTH, HEIGHT);
+  const plainCtx = plainCanvas.getContext("2d");
+  if (plainCtx) {
+    paintWeave(plainCtx);
+    drawCurvature(plainCtx);
+    drawEdges(plainCtx, edgeColor);
+  }
+
+  const colorCanvas = createCanvas(WIDTH, HEIGHT);
+  const colorCtx = colorCanvas.getContext("2d");
+  if (colorCtx) {
+    paintWeave(colorCtx);
     drawPrint(colorCtx, brand, printColor, 0.82, fonts.mono);
     drawCurvature(colorCtx);
     drawEdges(colorCtx, edgeColor);
@@ -279,15 +294,18 @@ export function createWebbingTextures(
   }
 
   const map = toTexture(colorCanvas, THREE.SRGBColorSpace, 1);
+  const plainMap = toTexture(plainCanvas, THREE.SRGBColorSpace, 1);
   const normalMap = toTexture(normalCanvas, THREE.NoColorSpace, 1);
   const roughnessMap = toTexture(roughnessCanvas, THREE.NoColorSpace, 1);
 
   return {
     map,
+    plainMap,
     normalMap,
     roughnessMap,
     dispose: () => {
       map.dispose();
+      plainMap.dispose();
       normalMap.dispose();
       roughnessMap.dispose();
     },

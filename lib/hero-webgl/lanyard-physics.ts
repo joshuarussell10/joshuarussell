@@ -24,6 +24,11 @@ const axisRight = new THREE.Vector3();
 const axisUp = new THREE.Vector3();
 const axisForward = new THREE.Vector3();
 const basis = new THREE.Matrix4();
+const leftAway = new THREE.Vector3();
+const rightAway = new THREE.Vector3();
+const strapLateral = new THREE.Vector3();
+const strapForward = new THREE.Vector3();
+const viewAxis = new THREE.Vector3(0, 0, 1);
 
 export type PointerState = { x: number; y: number; active: boolean };
 
@@ -205,6 +210,8 @@ export class LanyardSimulation {
       this.solveRope();
       this.solveCard();
       this.solveCoupling();
+      this.solveCrimpFacing();
+      this.solveCrimpMouth();
       this.pin();
     }
   }
@@ -269,6 +276,71 @@ export class LanyardSimulation {
       delta,
       (physics.rollStiffness * (target - right)) / right
     );
+  }
+
+  /**
+   * A real crimp clamps onto the front of the webbing V — it can't slip to the
+   * back side of the strap plane. When interaction folds the junction, push the
+   * mid-point back onto the camera-facing side of the neighbouring chord.
+   */
+  private solveCrimpFacing() {
+    const mid = this.midIndex;
+    const crimp = this.rope[mid];
+    const left = this.rope[mid - 1];
+    const right = this.rope[mid + 1];
+
+    leftAway.copy(left).sub(crimp);
+    rightAway.copy(right).sub(crimp);
+    strapLateral.copy(rightAway).sub(leftAway);
+    delta.copy(leftAway).add(rightAway);
+    if (strapLateral.lengthSq() < 1e-8 || delta.lengthSq() < 1e-8) return;
+
+    strapForward.crossVectors(strapLateral, delta);
+    if (strapForward.lengthSq() < 1e-8) return;
+    strapForward.normalize();
+    if (strapForward.dot(viewAxis) < 0) strapForward.negate();
+
+    // Signed offset of the crimp behind the chord between its neighbours.
+    const chord = topMid.copy(left).add(right).multiplyScalar(0.5);
+    const behind = chord.dot(strapForward) - crimp.dot(strapForward);
+    if (behind <= 0) return;
+
+    // Strong correction: metal stays clamped on the weave, not tucked behind it.
+    const push = behind * 0.9;
+    crimp.addScaledVector(strapForward, push);
+    left.addScaledVector(strapForward, -push * 0.2);
+    right.addScaledVector(strapForward, -push * 0.2);
+  }
+
+  /**
+   * Keep both strap approaches entering the crimp from above. Without this the
+   * V can flatten under a hard pointer push and the band mesh runs sideways
+   * through the barrel — which reads as the clasp slipping behind the weave.
+   */
+  private solveCrimpMouth() {
+    const mid = this.midIndex;
+    const crimp = this.rope[mid];
+    const left = this.rope[mid - 1];
+    const right = this.rope[mid + 1];
+    const minRise = this.segmentLength * 0.42;
+
+    // Hang-up: away from the card along the coupling axis when available,
+    // otherwise world up so a cold start still settles into a proper V.
+    topMid
+      .copy(this.cardCorners[TOP_LEFT])
+      .add(this.cardCorners[TOP_RIGHT])
+      .multiplyScalar(0.5);
+    axisUp.copy(crimp).sub(topMid);
+    if (axisUp.lengthSq() < 1e-8) axisUp.set(0, 1, 0);
+    else axisUp.normalize();
+
+    for (const neighbour of [left, right]) {
+      const rise = neighbour.dot(axisUp) - crimp.dot(axisUp);
+      if (rise >= minRise) continue;
+      const fix = (minRise - rise) * 0.55;
+      neighbour.addScaledVector(axisUp, fix);
+      crimp.addScaledVector(axisUp, -fix * 0.35);
+    }
   }
 
   /** Rotation of the card's top edge about the vertical axis. */
