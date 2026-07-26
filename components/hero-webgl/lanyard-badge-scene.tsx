@@ -1,278 +1,443 @@
 "use client";
 
-import { useRef } from "react";
-import { useFrame } from "@react-three/fiber";
-import { RoundedBox, Text } from "@react-three/drei";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import { Environment, Lightformer, RoundedBox, SoftShadows } from "@react-three/drei";
 import * as THREE from "three";
 import type { MousePosition } from "@/lib/hero-webgl/config";
 import {
-  getMouseForce,
+  getPointerInput,
   lanyardConfig,
   type LanyardPalette,
 } from "@/lib/hero-webgl/lanyard-config";
+import { LanyardSimulation } from "@/lib/hero-webgl/lanyard-physics";
+import {
+  createBandGeometry,
+  createCardBodyGeometry,
+  createCardFaceGeometry,
+  updateBandGeometry,
+} from "@/lib/hero-webgl/badge-geometry";
+import {
+  createBadgeTextures,
+  createHologramThicknessTexture,
+  resolveFontStacks,
+  type BadgeIdentity,
+} from "@/lib/hero-webgl/badge-textures";
+import { createWebbingTextures } from "@/lib/hero-webgl/lanyard-texture";
 
 type LanyardBadgeSceneProps = {
   mouse: MousePosition;
   interactive: boolean;
   pointerActive: boolean;
   palette: LanyardPalette;
-  name: string;
-  initials: string;
-  title: string;
+  identity: BadgeIdentity;
 };
 
-type PhysicsState = {
-  angleX: number;
-  angleZ: number;
-  velocityX: number;
-  velocityZ: number;
-};
+const { card, webbing, hardware } = lanyardConfig;
+/** The bevelled lid sits at the full half-thickness; print rides just above it. */
+const FACE_OFFSET = card.thickness / 2 + 0.0005;
+const RING_LOCAL_Y = card.height / 2 - card.slot.inset;
+
+/**
+ * Re-resolves the font stacks once webfonts finish loading, so the printed
+ * artwork is redrawn in Geist rather than the fallback face.
+ */
+function useFontStacks() {
+  const [stacks, setStacks] = useState(resolveFontStacks);
+
+  useEffect(() => {
+    let cancelled = false;
+    document.fonts?.ready.then(() => {
+      if (!cancelled) setStacks(resolveFontStacks());
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return stacks;
+}
+
+/** Crimp, swivel and hook: the metalwork joining the webbing to the slot. */
+function Hardware({ material }: { material: THREE.Material }) {
+  const gap = 1.05;
+
+  return (
+    <>
+      <RoundedBox
+        args={[hardware.crimpWidth, hardware.crimpHeight, hardware.crimpDepth]}
+        radius={0.012}
+        smoothness={4}
+        position={[0, -hardware.crimpHeight * 0.5 + 0.05, 0]}
+        material={material}
+        castShadow
+      />
+
+      {/* Pressed ridge across the crimp face. */}
+      <mesh position={[0, -0.02, hardware.crimpDepth * 0.5]} material={material} castShadow>
+        <boxGeometry args={[hardware.crimpWidth * 0.82, 0.012, 0.006]} />
+      </mesh>
+
+      {[-1, 1].map((side) => (
+        <mesh
+          key={side}
+          position={[side * hardware.crimpWidth * 0.3, -0.055, hardware.crimpDepth * 0.5]}
+          rotation={[Math.PI / 2, 0, 0]}
+          material={material}
+          castShadow
+        >
+          <cylinderGeometry args={[0.009, 0.009, 0.006, 12]} />
+        </mesh>
+      ))}
+
+      {/* Swivel collar and stem down to the hook. */}
+      <mesh position={[0, -0.09, 0]} material={material} castShadow>
+        <cylinderGeometry
+          args={[hardware.stemRadius * 1.6, hardware.stemRadius * 1.6, 0.016, 20]}
+        />
+      </mesh>
+      <mesh position={[0, -0.155, 0]} material={material} castShadow>
+        <cylinderGeometry args={[hardware.stemRadius, hardware.stemRadius, 0.13, 20]} />
+      </mesh>
+
+      {/* Hook, rolled so its opening sits at the top where the stem enters. */}
+      <mesh
+        position={[0, -0.26, 0]}
+        rotation={[0, 0, Math.PI / 2 + gap / 2]}
+        material={material}
+        castShadow
+      >
+        <torusGeometry
+          args={[hardware.hookRadius, hardware.hookTube, 14, 48, Math.PI * 2 - gap]}
+        />
+      </mesh>
+    </>
+  );
+}
 
 export function LanyardBadgeScene({
   mouse,
   interactive,
   pointerActive,
   palette,
-  name,
-  initials,
-  title,
+  identity,
 }: LanyardBadgeSceneProps) {
-  const badgeRef = useRef<THREE.Group>(null);
-  const strapRef = useRef<THREE.Mesh>(null);
-  const strapHighlightRef = useRef<THREE.Mesh>(null);
-  const strapDirection = useRef(new THREE.Vector3(0, -1, 0));
-  const strapMidpoint = useRef(new THREE.Vector3());
-  const up = useRef(new THREE.Vector3(0, 1, 0));
+  const gl = useThree((state) => state.gl);
+  const fonts = useFontStacks();
 
-  const physics = useRef<PhysicsState>({
-    angleX: 0,
-    angleZ: 0,
-    velocityX: 0,
-    velocityZ: 0,
-  });
+  const cardRef = useRef<THREE.Group>(null);
+  const hardwareRef = useRef<THREE.Group>(null);
 
-  useFrame((_, delta) => {
-    const dt = Math.min(delta, 0.032);
-    const { restore, settleRestore, damping, maxAngle } = lanyardConfig.physics;
-    const isActive = interactive && pointerActive;
-    const force = getMouseForce(mouse, interactive, pointerActive);
-    const body = physics.current;
-    const spring = isActive ? restore : settleRestore;
+  const simulation = useMemo(() => {
+    const sim = new LanyardSimulation();
+    sim.warmup();
+    return sim;
+  }, []);
 
-    body.velocityX +=
-      (-spring * body.angleX + force.x - body.velocityX * (1 - damping) * 10) * dt;
-    body.velocityZ +=
-      (-spring * body.angleZ + force.z - body.velocityZ * (1 - damping) * 10) * dt;
+  const anisotropy = useMemo(() => gl.capabilities.getMaxAnisotropy(), [gl]);
 
-    body.angleX = THREE.MathUtils.clamp(
-      body.angleX + body.velocityX * dt,
-      -maxAngle,
-      maxAngle
+  const badgeTextures = useMemo(() => {
+    const textures = createBadgeTextures(palette, identity, fonts);
+    textures.front.anisotropy = anisotropy;
+    textures.back.anisotropy = anisotropy;
+    return textures;
+  }, [palette, identity, anisotropy, fonts]);
+
+  const webbingTextures = useMemo(() => {
+    const textures = createWebbingTextures(
+      palette.strap,
+      palette.strapPrint,
+      palette.strapEdge,
+      identity.organisation.toUpperCase(),
+      fonts
     );
-    body.angleZ = THREE.MathUtils.clamp(
-      body.angleZ + body.velocityZ * dt,
-      -maxAngle,
-      maxAngle
+    textures.map.anisotropy = anisotropy;
+    textures.normalMap.anisotropy = anisotropy;
+    return textures;
+  }, [palette, identity, anisotropy, fonts]);
+
+  const hologramThickness = useMemo(() => createHologramThicknessTexture(), []);
+
+  const metalMaterial = useMemo(
+    () =>
+      new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color(palette.hardware),
+        metalness: 1,
+        roughness: 0.18,
+        envMapIntensity: 1.8,
+      }),
+    [palette.hardware]
+  );
+
+  useEffect(() => () => badgeTextures.dispose(), [badgeTextures]);
+  useEffect(() => () => webbingTextures.dispose(), [webbingTextures]);
+  useEffect(() => () => metalMaterial.dispose(), [metalMaterial]);
+  useEffect(() => () => hologramThickness.dispose(), [hologramThickness]);
+
+  const cardBodyGeometry = useMemo(() => createCardBodyGeometry(), []);
+  const cardFaceGeometry = useMemo(() => createCardFaceGeometry(), []);
+  const leftBandGeometry = useMemo(
+    () => createBandGeometry(webbing.segments / 2),
+    []
+  );
+  const rightBandGeometry = useMemo(
+    () => createBandGeometry(webbing.segments / 2),
+    []
+  );
+
+  useEffect(() => {
+    return () => {
+      cardBodyGeometry.dispose();
+      cardFaceGeometry.dispose();
+      leftBandGeometry.dispose();
+      rightBandGeometry.dispose();
+    };
+  }, [cardBodyGeometry, cardFaceGeometry, leftBandGeometry, rightBandGeometry]);
+
+  const ringWorld = useMemo(() => new THREE.Vector3(), []);
+  const hardwareBasis = useMemo(
+    () => ({
+      x: new THREE.Vector3(),
+      y: new THREE.Vector3(),
+      z: new THREE.Vector3(),
+      matrix: new THREE.Matrix4(),
+    }),
+    []
+  );
+
+  // With reduced motion or a coarse pointer the badge is posed once and left
+  // alone, rather than idling on the breeze.
+  const staticPoseApplied = useRef(false);
+
+  useFrame((_, deltaTime) => {
+    if (interactive) {
+      const pointer = getPointerInput(mouse, interactive, pointerActive);
+      simulation.update(deltaTime, {
+        x: pointer.x,
+        y: pointer.y,
+        active: pointerActive,
+      });
+    } else {
+      if (staticPoseApplied.current) return;
+      staticPoseApplied.current = true;
+    }
+
+    const cardGroup = cardRef.current;
+    if (cardGroup) {
+      cardGroup.position.copy(simulation.cardPosition);
+      cardGroup.quaternion.copy(simulation.cardQuaternion);
+      cardGroup.updateMatrixWorld();
+    }
+
+    updateBandGeometry(
+      leftBandGeometry,
+      simulation.leftStrand,
+      webbing.width,
+      webbing.thickness,
+      webbing.textureRepeatLength
+    );
+    updateBandGeometry(
+      rightBandGeometry,
+      simulation.rightStrand,
+      webbing.width,
+      webbing.thickness,
+      webbing.textureRepeatLength
     );
 
-    if (!isActive) {
-      if (Math.abs(body.angleX) < 0.002) body.angleX = 0;
-      if (Math.abs(body.angleZ) < 0.002) body.angleZ = 0;
-      if (Math.abs(body.velocityX) < 0.002) body.velocityX = 0;
-      if (Math.abs(body.velocityZ) < 0.002) body.velocityZ = 0;
-    }
+    const hardwareGroup = hardwareRef.current;
+    if (hardwareGroup && cardGroup) {
+      ringWorld.set(0, RING_LOCAL_Y, 0).applyMatrix4(cardGroup.matrixWorld);
 
-    const length = lanyardConfig.strapLength;
-    const anchorY = lanyardConfig.anchorY;
-    const offsetX = Math.sin(body.angleZ) * length * 0.92;
-    const offsetY = -Math.cos(body.angleX) * Math.cos(body.angleZ) * length;
-    const offsetZ = Math.sin(body.angleX) * length * 0.28;
+      const { x, y, z, matrix } = hardwareBasis;
+      y.copy(simulation.crimp).sub(ringWorld).normalize();
+      // Keep the hook's plane square to the ring hanging in the card's slot.
+      z.set(0, 0, 1).applyQuaternion(simulation.cardQuaternion);
+      z.addScaledVector(y, -z.dot(y)).normalize();
+      x.crossVectors(y, z).normalize();
 
-    const badgeX = offsetX;
-    const badgeY = anchorY + offsetY;
-    const badgeZ = offsetZ;
-    const clipY = badgeY + lanyardConfig.badge.height * 0.46;
-
-    if (badgeRef.current) {
-      badgeRef.current.position.set(badgeX, badgeY, badgeZ);
-      badgeRef.current.rotation.set(
-        body.angleX * 0.7,
-        0,
-        body.angleZ * 0.75
-      );
-    }
-
-    const anchor = new THREE.Vector3(0, anchorY, 0);
-    const clip = new THREE.Vector3(badgeX * 0.35, clipY, badgeZ * 0.35);
-
-    for (const meshRef of [strapRef, strapHighlightRef]) {
-      const mesh = meshRef.current;
-      if (!mesh) continue;
-
-      strapDirection.current.copy(clip).sub(anchor);
-      const strapLength = strapDirection.current.length();
-      strapMidpoint.current.copy(anchor).add(clip).multiplyScalar(0.5);
-      mesh.position.copy(strapMidpoint.current);
-      mesh.scale.y = strapLength;
-      mesh.quaternion.setFromUnitVectors(
-        up.current,
-        strapDirection.current.normalize()
-      );
+      matrix.makeBasis(x, y, z);
+      hardwareGroup.quaternion.setFromRotationMatrix(matrix);
+      hardwareGroup.position.copy(simulation.crimp);
     }
   });
-
-  const { badge } = lanyardConfig;
 
   return (
     <>
-      <ambientLight intensity={0.85} />
-      <directionalLight position={[2.5, 4, 3]} intensity={1.1} />
-      <directionalLight position={[-2, 1.5, -2]} intensity={0.35} />
+      <SoftShadows size={38} samples={16} focus={0} />
 
-      <mesh ref={strapRef}>
-        <boxGeometry args={[0.045, 1, 0.018]} />
-        <meshStandardMaterial
-          color={palette.strap}
-          metalness={0.15}
-          roughness={0.55}
+      {/* Compact studio rig baked into a cubemap for the metal reflections. */}
+      <Environment resolution={256} frames={1}>
+        <color attach="background" args={[palette.environment]} />
+        {/* Overhead softbox. */}
+        <Lightformer
+          intensity={3.2}
+          position={[0, 3.4, 3.2]}
+          scale={[7, 3.2, 1]}
+          target={[0, 0, 0]}
+        />
+        {/* Broad frontal panel: what the laminate and hologram actually catch. */}
+        <Lightformer
+          intensity={1.5}
+          position={[0.7, 0.9, 5.2]}
+          scale={[6, 6, 1]}
+          target={[0, 0, 0]}
+        />
+        <Lightformer
+          intensity={1.2}
+          color="#cfd8ff"
+          position={[-4, 0.4, 2.2]}
+          scale={[3, 5, 1]}
+          target={[0, 0, 0]}
+        />
+        {/* Warm rim down the right edge, to separate the metal from the page. */}
+        <Lightformer
+          intensity={2}
+          color="#ffe9c9"
+          position={[4.2, 1.2, -1.6]}
+          scale={[1.2, 5, 1]}
+          target={[0, 0, 0]}
+        />
+        <Lightformer
+          form="ring"
+          intensity={0.7}
+          position={[0, -3.4, 1.6]}
+          scale={5}
+          target={[0, 0, 0]}
+        />
+      </Environment>
+
+      <ambientLight intensity={0.18} />
+      <hemisphereLight intensity={0.16} groundColor="#1a1c28" />
+
+      <directionalLight
+        position={[1.6, 3.6, 5.4]}
+        intensity={2.4}
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.01}
+        shadow-camera-near={1}
+        shadow-camera-far={12}
+        shadow-camera-left={-1.9}
+        shadow-camera-right={1.9}
+        shadow-camera-top={2.6}
+        shadow-camera-bottom={-2.6}
+      />
+      <directionalLight position={[-3.4, 1.2, 2.6]} intensity={0.5} color="#c7d2fe" />
+      <directionalLight position={[-1.2, 0.4, -4]} intensity={0.85} color="#8fa2ff" />
+
+      {/* Wall behind the badge, visible only through the shadow it catches. */}
+      <mesh position={[0, 0, -0.6]} receiveShadow>
+        <planeGeometry args={[14, 14]} />
+        <shadowMaterial transparent opacity={0.19} color={palette.shadow} />
+      </mesh>
+
+      <mesh geometry={leftBandGeometry} castShadow receiveShadow frustumCulled={false}>
+        <meshPhysicalMaterial
+          map={webbingTextures.map}
+          normalMap={webbingTextures.normalMap}
+          roughnessMap={webbingTextures.roughnessMap}
+          normalScale={new THREE.Vector2(0.85, 0.85)}
+          roughness={1}
+          metalness={0}
+          sheen={0.3}
+          sheenRoughness={0.8}
+          sheenColor={palette.strapPrint}
+          envMapIntensity={0.35}
         />
       </mesh>
-      <mesh ref={strapHighlightRef}>
-        <boxGeometry args={[0.018, 1, 0.01]} />
-        <meshBasicMaterial
-          color={palette.strapHighlight}
-          transparent
-          opacity={0.55}
+
+      <mesh geometry={rightBandGeometry} castShadow receiveShadow frustumCulled={false}>
+        <meshPhysicalMaterial
+          map={webbingTextures.map}
+          normalMap={webbingTextures.normalMap}
+          roughnessMap={webbingTextures.roughnessMap}
+          normalScale={new THREE.Vector2(0.85, 0.85)}
+          roughness={1}
+          metalness={0}
+          sheen={0.3}
+          sheenRoughness={0.8}
+          sheenColor={palette.strapPrint}
+          envMapIntensity={0.35}
         />
       </mesh>
 
-      <mesh position={[0, lanyardConfig.anchorY + 0.08, 0]}>
-        <boxGeometry args={[0.55, 0.1, 0.08]} />
-        <meshStandardMaterial
-          color={palette.clip}
-          metalness={0.65}
-          roughness={0.35}
-        />
-      </mesh>
+      <group ref={hardwareRef}>
+        <Hardware material={metalMaterial} />
+      </group>
 
-      <group ref={badgeRef}>
-        <RoundedBox
-          args={[badge.width, badge.height, badge.depth]}
-          radius={badge.radius}
-          smoothness={4}
-        >
-          <meshStandardMaterial
-            color={palette.card}
-            metalness={0.08}
-            roughness={0.55}
-          />
-        </RoundedBox>
-
-        <mesh position={[0, 0, badge.depth * 0.6]}>
-          <planeGeometry args={[badge.width + 0.02, badge.height + 0.02]} />
-          <meshBasicMaterial
-            color={palette.cardBorder}
-            transparent
-            opacity={0.35}
+      <group ref={cardRef}>
+        <mesh geometry={cardBodyGeometry} castShadow receiveShadow>
+          <meshPhysicalMaterial
+            color={palette.cardCore}
+            metalness={0}
+            roughness={0.42}
+            clearcoat={0.7}
+            clearcoatRoughness={0.22}
+            envMapIntensity={1}
           />
         </mesh>
 
-        <mesh position={[0, badge.height * 0.46, badge.depth * 0.55]}>
-          <boxGeometry args={[0.22, 0.12, 0.06]} />
-          <meshStandardMaterial
-            color={palette.clip}
-            metalness={0.7}
-            roughness={0.3}
+        <mesh geometry={cardFaceGeometry} position={[0, 0, FACE_OFFSET]} receiveShadow>
+          <meshPhysicalMaterial
+            map={badgeTextures.front}
+            clearcoatRoughnessMap={badgeTextures.gloss}
+            metalness={0}
+            roughness={0.5}
+            clearcoat={1}
+            clearcoatRoughness={0.12}
+            envMapIntensity={0.8}
           />
         </mesh>
-
-        <mesh position={[0, badge.height * 0.28, badge.depth * 0.55]}>
-          <circleGeometry args={[badge.photoRadius, 48]} />
-          <meshStandardMaterial
-            color={palette.photo}
-            metalness={0.15}
-            roughness={0.45}
-          />
-        </mesh>
-
-        <mesh position={[0, badge.height * 0.28, badge.depth * 0.62]}>
-          <ringGeometry
-            args={[badge.photoRadius * 0.92, badge.photoRadius * 1.05, 48]}
-          />
-          <meshBasicMaterial
-            color={palette.photoRing}
-            transparent
-            opacity={0.9}
-          />
-        </mesh>
-
-        <Text
-          position={[0, badge.height * 0.28, badge.depth * 0.7]}
-          fontSize={0.28}
-          color={palette.name}
-          anchorX="center"
-          anchorY="middle"
-        >
-          {initials}
-        </Text>
-
-        <Text
-          position={[0, badge.height * 0.02, badge.depth * 0.65]}
-          fontSize={0.17}
-          color={palette.name}
-          anchorX="center"
-          anchorY="middle"
-          maxWidth={badge.width * 0.88}
-          textAlign="center"
-        >
-          {name}
-        </Text>
-
-        <Text
-          position={[0, -badge.height * 0.14, badge.depth * 0.65]}
-          fontSize={0.1}
-          color={palette.subtitle}
-          anchorX="center"
-          anchorY="middle"
-          maxWidth={badge.width * 0.9}
-          textAlign="center"
-        >
-          {title}
-        </Text>
-
-        <mesh position={[0, -badge.height * 0.36, badge.depth * 0.55]}>
-          <planeGeometry args={[badge.width * 0.78, 0.22]} />
-          <meshStandardMaterial color={palette.stripe} roughness={0.7} />
-        </mesh>
-
-        {Array.from({ length: 14 }).map((_, index) => (
-          <mesh
-            key={index}
-            position={[
-              -badge.width * 0.34 + index * (badge.width * 0.052),
-              -badge.height * 0.36,
-              badge.depth * 0.62,
-            ]}
-          >
-            <planeGeometry args={[0.018, 0.16]} />
-            <meshBasicMaterial
-              color={index % 3 === 0 ? palette.stripeAccent : palette.name}
-              transparent
-              opacity={index % 3 === 0 ? 0.9 : 0.35}
-            />
-          </mesh>
-        ))}
 
         <mesh
-          position={[0, -badge.height * 0.52, -0.02]}
-          rotation={[-Math.PI / 2, 0, 0]}
+          geometry={cardFaceGeometry}
+          position={[0, 0, -FACE_OFFSET]}
+          rotation={[0, Math.PI, 0]}
+          receiveShadow
         >
-          <circleGeometry args={[badge.width * 0.55, 32]} />
-          <meshBasicMaterial
-            color={palette.lanyardShadow}
-            transparent
-            opacity={0.12}
+          <meshPhysicalMaterial
+            map={badgeTextures.back}
+            clearcoatRoughnessMap={badgeTextures.gloss}
+            metalness={0}
+            roughness={0.5}
+            clearcoat={1}
+            clearcoatRoughness={0.12}
+            envMapIntensity={0.8}
           />
+        </mesh>
+
+        {/* Holographic security patch — added over the print so it reads as
+            foil catching light rather than a grey sticker. */}
+        <mesh
+          position={[card.hologram.x, card.hologram.y, FACE_OFFSET + 0.0006]}
+          rotation={[0, 0, Math.PI * 0.12]}
+        >
+          <circleGeometry args={[card.hologram.radius, 48]} />
+          <meshPhysicalMaterial
+            color="#ffffff"
+            metalness={1}
+            roughness={0.3}
+            iridescence={1}
+            iridescenceIOR={2.1}
+            iridescenceThicknessRange={[120, 880]}
+            iridescenceThicknessMap={hologramThickness}
+            transparent
+            opacity={0.07}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            envMapIntensity={0.9}
+          />
+        </mesh>
+
+        {/* Split ring riding in the punched slot. */}
+        <mesh
+          position={[0, RING_LOCAL_Y, 0]}
+          rotation={[0, Math.PI / 2, 0]}
+          material={metalMaterial}
+          castShadow
+        >
+          <torusGeometry args={[hardware.ringRadius, hardware.ringTube, 16, 40]} />
         </mesh>
       </group>
     </>
