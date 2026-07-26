@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 import { useHeroInteraction } from "@/components/hero-webgl/use-hero-interaction";
 import { RoleRotator } from "@/components/role-rotator";
@@ -16,6 +17,7 @@ const HeroMorphCanvas = dynamic(
 );
 
 export function HeroSection() {
+  const router = useRouter();
   const { mouse, interactive, onPointerMove, onPointerLeave } =
     useHeroInteraction();
   const [shapeStep, setShapeStep] = useState(0);
@@ -77,7 +79,7 @@ export function HeroSection() {
             variant="secondary"
             size="lg"
             onPress={() => {
-              document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+              router.push("/contact");
             }}
           >
             Start a conversation

@@ -24,6 +24,10 @@ export const siteConfig = {
     linkedin: "https://linkedin.com/in/joshuarussell",
   },
   availability: "Open to contract work",
+  resume: {
+    pdfUrl: "/resume.pdf",
+    requestSubject: "Resume request — Joshua Russell",
+  },
 };
 
 export const heroRoles = [
@@ -101,8 +105,29 @@ export const skillGroups: SkillGroup[] = [
 ];
 
 export const navLinks = [
-  { label: "About", href: "#about" },
-  { label: "Work", href: "#work" },
-  { label: "Skills", href: "#skills" },
-  { label: "Contact", href: "#contact" },
+  { label: "About", href: "/#about" },
+  { label: "Work", href: "/#work" },
+  { label: "Skills", href: "/#skills" },
+  { label: "Contact", href: "/contact" },
 ];
+
+export const contactPage = {
+  title: "Let's connect",
+  description:
+    "Whether you're exploring a contract engagement or need my resume for a role, choose the option that fits and I'll get back to you.",
+  getInTouch: {
+    title: "Get in touch",
+    description:
+      "Reach out about contract work, fractional engineering, or a project you need help shipping.",
+    subject: "Project inquiry — Joshua Russell",
+    submitLabel: "Send message",
+  },
+  requestResume: {
+    title: "Request resume",
+    description:
+      "Share a few details and I'll send over my resume. You can also download it directly if available.",
+    subject: "Resume request — Joshua Russell",
+    submitLabel: "Request resume",
+    downloadLabel: "Download resume",
+  },
+};

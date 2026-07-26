@@ -27,6 +27,12 @@ export function Footer() {
             LinkedIn
           </a>
           <a
+            href="/contact"
+            className="transition hover:text-site-subtle"
+          >
+            Contact
+          </a>
+          <a
             href={`mailto:${siteConfig.email}`}
             className="transition hover:text-site-subtle"
           >

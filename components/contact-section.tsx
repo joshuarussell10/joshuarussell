@@ -1,7 +1,8 @@
 "use client";
 
 import { Button, Card } from "@heroui/react";
-import { siteConfig } from "@/lib/data";
+import Link from "next/link";
+import { contactPage, siteConfig } from "@/lib/data";
 
 export function ContactSection() {
   return (
@@ -13,32 +14,23 @@ export function ContactSection() {
               Contact
             </p>
             <h2 className="mb-4 text-3xl font-semibold tracking-tight md:text-4xl">
-              Let&apos;s build something together
+              {contactPage.title}
             </h2>
             <p className="mb-8 max-w-md text-site-muted">
-              Have a project in mind, need senior engineering capacity, or want
-              to explore a contract engagement? I&apos;d love to hear from you.
+              {contactPage.description}
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <Button
-                variant="primary"
-                size="lg"
-                onPress={() => {
-                  window.location.href = `mailto:${siteConfig.email}`;
-                }}
-              >
-                Email me
-              </Button>
-              <Button
-                variant="secondary"
-                size="lg"
-                onPress={() => {
-                  window.open(siteConfig.social.linkedin, "_blank", "noopener,noreferrer");
-                }}
-              >
-                LinkedIn
-              </Button>
+              <Link href="/contact">
+                <Button variant="primary" size="lg">
+                  Get in touch
+                </Button>
+              </Link>
+              <Link href="/contact#request-resume">
+                <Button variant="secondary" size="lg">
+                  Request resume
+                </Button>
+              </Link>
             </div>
           </div>
 
