@@ -57,6 +57,12 @@ export const lanyardConfig = {
     thickness: 0.028,
     corner: 0.075,
     bevel: 0.0035,
+    /**
+     * Laminated PVC never sits dead flat. A shallow curl across the width
+     * makes the highlight sweep the face as the badge turns, instead of the
+     * whole card flashing at once the way a perfect plane does.
+     */
+    bow: 0.017,
     slot: {
       width: 0.34,
       height: 0.052,
@@ -76,10 +82,18 @@ export const lanyardConfig = {
     anchorSpread: 0.82,
     anchorZ: -0.03,
     /** Where the strands meet at rest; sets the overall rope length. */
-    crimpRestY: 0.62,
+    crimpRestY: 0.735,
     /** 12 mm flat woven polyester at the card's 54 mm reference width. */
     width: 0.26,
-    thickness: 0.014,
+    thickness: 0.015,
+    /** Points around the tape's cross-section. */
+    profileSegments: 20,
+    /** Section squareness: 2 is an ellipse, 4 a squircle. */
+    profileExponent: 3.4,
+    /** Depth of the cross-sectional cup — flat tape never lies dead flat. */
+    curl: 0.009,
+    /** Peak roll about the strap's own axis at mid-span, in radians. */
+    twist: 0.42,
     /** Rope resolution: must stay even so the junction lands on a vertex. */
     segments: 44,
     /** Extra length over the straight-line run, giving the strands their sag. */
@@ -87,32 +101,57 @@ export const lanyardConfig = {
     /** World length covered by one repeat of the webbing texture. */
     textureRepeatLength: 1.04,
   },
+  /**
+   * The clasp is measured downward from the crimp centre, which sits at the
+   * rope's junction particle. Each stage hands its lower edge to the next, so
+   * the barrel, swivel, claw and split ring stay a single assembly whichever
+   * dimension is retuned.
+   */
   hardware: {
-    /** Crimp centre down to the top edge of the card. */
-    drop: 0.22,
-    crimpWidth: 0.28,
-    crimpHeight: 0.13,
-    crimpDepth: 0.055,
     /**
-     * Local +Y of the hardware group where the webbing enters the crimp.
-     * Matches the top face of the RoundedBox crimp mesh.
+     * Crimp centre down to the top edge of the card. Derived so the split
+     * ring seats in the throat of the claw:
+     *   -(clawApexY - clawLength - ringRadius + ringTube - clawTube)
+     *   - slot.inset
      */
-    crimpEntryY: 0.035,
+    drop: 0.3365,
+
+    /** Folded sheet-metal barrel: wide at the mouth, tapering to the swivel. */
+    crimpWidth: 0.31,
+    crimpDepth: 0.062,
+    /** Fraction of the width still left where the barrel meets the swivel. */
+    crimpWaist: 0.5,
+    /** Top of the barrel in hardware-local space. */
+    crimpTopY: 0.05,
+    /** Bottom of the barrel, and the top of the swivel stack. */
+    swivelTopY: -0.095,
     /**
-     * Half-spacing of the two strap ends across the crimp mouth. Keeps the
-     * weave from covering the barrel face the way a single shared tip would.
+     * Where each strap end is buried, far enough inside the barrel that a
+     * hard pointer flick can't work a tip back out through the mouth.
      */
-    crimpEntrySpread: 0.048,
+    crimpEntryY: -0.015,
     /**
-     * Push the metal slightly in front of the strap centreline so the clasp
-     * always reads as clamping onto the weave, not sitting inside it.
+     * Half-spacing of the two strap ends across the mouth. They overlap the
+     * way two tape ends really do; `crimpEntryDepth` stacks them front to
+     * back so the overlap never z-fights.
      */
-    crimpFrontBias: 0.024,
-    stemRadius: 0.024,
-    hookRadius: 0.05,
-    hookTube: 0.016,
-    ringRadius: 0.058,
-    ringTube: 0.015,
+    crimpEntrySpread: 0.018,
+    crimpEntryDepth: 0.009,
+    /** Nudge the barrel just in front of the strap centreline. */
+    crimpFrontBias: 0.002,
+
+    swivelRadius: 0.031,
+    stemRadius: 0.019,
+
+    /** Lobster claw, hung off the bottom of the swivel stem. */
+    clawApexY: -0.168,
+    clawLength: 0.19,
+    clawWidth: 0.14,
+    clawTube: 0.0155,
+    gateTube: 0.0085,
+
+    ringRadius: 0.062,
+    ringTube: 0.014,
   },
   physics: {
     /**
@@ -172,7 +211,7 @@ export const lanyardPalettes = {
     magStripe: "#0a0a12",
     signatureStrip: "#e6e3da",
     shadow: "#05060c",
-    environment: "#20232f",
+    environment: "#171922",
   },
   light: {
     strap: "#4338ca",
@@ -194,7 +233,10 @@ export const lanyardPalettes = {
     magStripe: "#14151d",
     signatureStrip: "#fbf9f2",
     shadow: "#1b2340",
-    environment: "#9aa3ba",
+    // Deliberately darker than the page: the studio panels supply the
+    // highlights, and the gap between them is what makes the metal read as
+    // metal rather than pale plastic.
+    environment: "#6d7488",
   },
 } satisfies Record<"dark" | "light", LanyardPalette>;
 

@@ -219,6 +219,89 @@ function toTexture(
   return texture;
 }
 
+export type HardwareTextureSet = {
+  roughnessMap: THREE.CanvasTexture;
+  normalMap: THREE.CanvasTexture;
+  dispose: () => void;
+};
+
+const HARDWARE_SIZE = 256;
+
+/**
+ * Fine directional grain for the clasp. Nickel-plated hardware is polished
+ * but never optically flat, and a perfectly uniform roughness is what makes
+ * small metal parts read as chrome-plated CG rather than pressed metal.
+ */
+export function createHardwareTextures(): HardwareTextureSet {
+  const random = createRandom(90210);
+  const height = createCanvas(HARDWARE_SIZE, HARDWARE_SIZE);
+  const ctx = height.getContext("2d");
+
+  if (ctx) {
+    ctx.fillStyle = "#808080";
+    ctx.fillRect(0, 0, HARDWARE_SIZE, HARDWARE_SIZE);
+
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 900; i += 1) {
+      const y = random() * HARDWARE_SIZE;
+      const x = random() * HARDWARE_SIZE;
+      const run = 12 + random() * 90;
+      const shade = Math.round(118 + random() * 78);
+      ctx.strokeStyle = `rgba(${shade},${shade},${shade},0.5)`;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      // Wrapped so the grain still tiles once the strokes run off the edge.
+      ctx.lineTo(x + run, y + (random() - 0.5) * 1.5);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x - HARDWARE_SIZE, y);
+      ctx.lineTo(x - HARDWARE_SIZE + run, y);
+      ctx.stroke();
+    }
+
+    // Sparse pitting from casting and handling.
+    for (let i = 0; i < 260; i += 1) {
+      const radius = 0.4 + random() * 1.4;
+      ctx.fillStyle = `rgba(70,70,70,${0.1 + random() * 0.2})`;
+      ctx.beginPath();
+      ctx.arc(
+        random() * HARDWARE_SIZE,
+        random() * HARDWARE_SIZE,
+        radius,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+  }
+
+  const roughnessCanvas = createCanvas(HARDWARE_SIZE, HARDWARE_SIZE);
+  const roughnessCtx = roughnessCanvas.getContext("2d");
+  if (roughnessCtx) {
+    // Compress the grain into a narrow band around a low base roughness.
+    roughnessCtx.fillStyle = "#3a3a3a";
+    roughnessCtx.fillRect(0, 0, HARDWARE_SIZE, HARDWARE_SIZE);
+    roughnessCtx.globalAlpha = 0.35;
+    roughnessCtx.drawImage(height, 0, 0);
+  }
+
+  const normalCanvas = heightToNormal(height, 0.35);
+
+  const roughnessMap = toTexture(roughnessCanvas, THREE.NoColorSpace, 1);
+  const normalMap = toTexture(normalCanvas, THREE.NoColorSpace, 1);
+  roughnessMap.repeat.set(2, 2);
+  normalMap.repeat.set(2, 2);
+
+  return {
+    roughnessMap,
+    normalMap,
+    dispose: () => {
+      roughnessMap.dispose();
+      normalMap.dispose();
+    },
+  };
+}
+
 export function createWebbingTextures(
   baseColor: string,
   printColor: string,

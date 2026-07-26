@@ -1,10 +1,40 @@
 import * as THREE from "three";
 import { lanyardConfig } from "@/lib/hero-webgl/lanyard-config";
 
-/** Lower fraction of each strand (toward the clasp) with branding removed. */
-const PLAIN_STRAP_FRACTION = 0.42;
+const { card, webbing } = lanyardConfig;
+
+/**
+ * Lower fraction of each strand (toward the clasp) with branding removed.
+ * Sized against the shorter rope the raised crimp gives, so the print still
+ * reaches the part of the strap that is actually on screen.
+ */
+const PLAIN_STRAP_FRACTION = 0.3;
 /** Soft blend rings between printed and plain weave. */
 const PRINT_BLEND_RINGS = 3;
+
+const CARD_HALF_WIDTH = card.width / 2;
+
+/**
+ * Shallow curl across the card's width, centred on z = 0 so the badge still
+ * hangs on the flat plane the solver assumes.
+ */
+export function cardBowAt(x: number) {
+  const s = x / CARD_HALF_WIDTH;
+  return card.bow * (1 / 3 - s * s);
+}
+
+/** d(bow)/dx, for sitting applied decals flush against the curved face. */
+export function cardBowSlopeAt(x: number) {
+  return (-2 * card.bow * x) / (CARD_HALF_WIDTH * CARD_HALF_WIDTH);
+}
+
+function applyCardBow(geometry: THREE.BufferGeometry, sign: number) {
+  const position = geometry.attributes.position as THREE.BufferAttribute;
+  for (let i = 0; i < position.count; i += 1) {
+    position.setZ(i, position.getZ(i) + sign * cardBowAt(position.getX(i)));
+  }
+  position.needsUpdate = true;
+}
 
 function roundedRectShape(width: number, height: number, radius: number) {
   const w = width / 2;
@@ -43,7 +73,6 @@ function slotPath(cx: number, cy: number, width: number, height: number) {
 }
 
 function cardOutline(inset: number) {
-  const { card } = lanyardConfig;
   const shape = roundedRectShape(
     card.width - inset * 2,
     card.height - inset * 2,
@@ -62,7 +91,6 @@ function cardOutline(inset: number) {
 
 /** The PVC core: extruded outline with a small bevel on both faces. */
 export function createCardBodyGeometry() {
-  const { card } = lanyardConfig;
   const depth = card.thickness - card.bevel * 2;
 
   const geometry = new THREE.ExtrudeGeometry(cardOutline(0), {
@@ -77,6 +105,7 @@ export function createCardBodyGeometry() {
   });
 
   geometry.translate(0, 0, -depth / 2);
+  applyCardBow(geometry, 1);
   geometry.computeVertexNormals();
   return geometry;
 }
@@ -84,25 +113,107 @@ export function createCardBodyGeometry() {
 /**
  * Flat print surface sitting just proud of the core. UVs are mapped against
  * the card's full outer bounds so artwork stays registered despite the inset.
+ *
+ * `bowSign` is negated for the reverse face, which is mounted with a half turn
+ * about Y — without it the two faces would curl away from each other.
  */
-export function createCardFaceGeometry() {
-  const { card } = lanyardConfig;
+export function createCardFaceGeometry(bowSign: 1 | -1 = 1) {
   const geometry = new THREE.ShapeGeometry(cardOutline(card.bevel), 18);
 
   const position = geometry.attributes.position;
   const uv = new Float32Array(position.count * 2);
+  const normal = new Float32Array(position.count * 3);
+
   for (let i = 0; i < position.count; i += 1) {
-    uv[i * 2] = position.getX(i) / card.width + 0.5;
+    const x = position.getX(i);
+    uv[i * 2] = x / card.width + 0.5;
     uv[i * 2 + 1] = position.getY(i) / card.height + 0.5;
+
+    // Analytic normal of z = bow(x): flat in y, tilted by the curl in x.
+    const slope = bowSign * cardBowSlopeAt(x);
+    const length = Math.hypot(slope, 1);
+    normal[i * 3] = -slope / length;
+    normal[i * 3 + 1] = 0;
+    normal[i * 3 + 2] = 1 / length;
   }
+
+  applyCardBow(geometry, bowSign);
   geometry.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+  geometry.setAttribute("normal", new THREE.BufferAttribute(normal, 3));
 
   return geometry;
 }
 
-const VERTS_PER_RING = 8;
+/**
+ * Cross-section of the woven tape, as a superellipse so the selvedges roll
+ * over instead of meeting the faces at a hard corner, plus a cup across the
+ * width. Sharp extruded corners are the loudest tell that a strap is CG —
+ * these rounded edges give the specular somewhere to roll off.
+ *
+ * `su` is a fraction of the half-width and `sv` a fraction of the
+ * half-thickness, so the crimp taper can squash the two axes independently.
+ */
+type TapeProfilePoint = {
+  su: number;
+  sv: number;
+  nu: number;
+  nv: number;
+  u: number;
+};
 
-/** Allocates the flat-band mesh; positions are filled in every frame. */
+function buildTapeProfile(): TapeProfilePoint[] {
+  const count = webbing.profileSegments;
+  const exponent = webbing.profileExponent;
+  const halfWidth = webbing.width / 2;
+  const halfThickness = webbing.thickness / 2;
+  const curl = webbing.curl / halfThickness;
+  const points: TapeProfilePoint[] = [];
+
+  for (let i = 0; i < count; i += 1) {
+    const theta = (i / count) * Math.PI * 2;
+    const cos = Math.cos(theta);
+    const sin = Math.sin(theta);
+    const su = Math.sign(cos) * Math.abs(cos) ** (2 / exponent);
+    const sv = Math.sign(sin) * Math.abs(sin) ** (2 / exponent);
+
+    // Gradient of |x/a|^n + |y/b|^n = 1 at this point.
+    let nu =
+      (Math.sign(su) * Math.abs(su) ** (exponent - 1)) / halfWidth;
+    let nv =
+      (Math.sign(sv) * Math.abs(sv) ** (exponent - 1)) / halfThickness;
+
+    // Rotate the normal by the cup's slope, which shears the section.
+    const slope = (-2 * webbing.curl * su) / halfWidth;
+    const angle = Math.atan(slope);
+    const ca = Math.cos(angle);
+    const sa = Math.sin(angle);
+    [nu, nv] = [nu * ca - nv * sa, nu * sa + nv * ca];
+
+    const length = Math.hypot(nu, nv) || 1;
+
+    points.push({
+      su,
+      sv: sv + curl * (1 - su * su),
+      nu: nu / length,
+      nv: nv / length,
+      // Texture u tracks position across the width, so the printed selvedge
+      // lands on the rolled edge and the two faces stay in register.
+      u: (su + 1) / 2,
+    });
+  }
+
+  return points;
+}
+
+const TAPE_PROFILE = buildTapeProfile();
+const VERTS_PER_RING = TAPE_PROFILE.length;
+
+/** Rings over which the tape is squeezed as it disappears into the barrel. */
+const TAPER_RINGS = 1;
+const TAPER_WIDTH = 0.8;
+const TAPER_THICKNESS = 0.55;
+
+/** Allocates the tape mesh; positions are filled in every frame. */
 export function createBandGeometry(segments: number) {
   const rings = segments + 1;
   const geometry = new THREE.BufferGeometry();
@@ -127,14 +238,13 @@ export function createBandGeometry(segments: number) {
 
   const indices: number[] = [];
   for (let i = 0; i < segments; i += 1) {
-    const a = i * VERTS_PER_RING;
-    const b = (i + 1) * VERTS_PER_RING;
-    for (let face = 0; face < 4; face += 1) {
-      const pA = a + face * 2;
-      const qA = pA + 1;
-      const pB = b + face * 2;
-      const qB = pB + 1;
-      indices.push(pA, pB, qA, qA, pB, qB);
+    for (let k = 0; k < VERTS_PER_RING; k += 1) {
+      const next = (k + 1) % VERTS_PER_RING;
+      const a = i * VERTS_PER_RING + k;
+      const b = i * VERTS_PER_RING + next;
+      const c = (i + 1) * VERTS_PER_RING + k;
+      const d = (i + 1) * VERTS_PER_RING + next;
+      indices.push(a, b, c, b, d, c);
     }
   }
   geometry.setIndex(indices);
@@ -146,8 +256,11 @@ const tangent = new THREE.Vector3();
 const previousTangent = new THREE.Vector3();
 const faceNormal = new THREE.Vector3();
 const binormal = new THREE.Vector3();
+const twistedFace = new THREE.Vector3();
+const twistedBinormal = new THREE.Vector3();
 const rotationAxis = new THREE.Vector3();
 const transport = new THREE.Quaternion();
+const roll = new THREE.Quaternion();
 const corner = new THREE.Vector3();
 const seedNormal = new THREE.Vector3();
 const viewAxis = new THREE.Vector3(0, 0, 1);
@@ -161,14 +274,11 @@ function ringPoint(
   return points[index];
 }
 
-/** Cross-section shrinks into the crimp mouth over the last few rings. */
-function endTaper(index: number, rings: number, taperRings: number) {
-  if (taperRings <= 0) return 1;
+/** Cross-section squeeze as the tape is swallowed by the crimp mouth. */
+function endTaper(index: number, rings: number, target: number) {
   const fromEnd = rings - 1 - index;
-  if (fromEnd >= taperRings) return 1;
-  const t = fromEnd / taperRings;
-  // Keep a little thickness so the strap still reads as entering the barrel.
-  return 0.12 + 0.88 * t * t;
+  if (fromEnd >= TAPER_RINGS) return 1;
+  return target + (1 - target) * (fromEnd / TAPER_RINGS);
 }
 
 /** Branding weight by ring: plain near the clasp, printed on the upper run. */
@@ -184,37 +294,34 @@ function printMixForRing(index: number, rings: number) {
 }
 
 /**
- * Sweeps a rectangular cross-section along the point list using parallel
- * transport frames, so the band never spins about its own axis between frames.
+ * Sweeps the tape section along the point list using parallel transport
+ * frames, so the band never spins about its own axis between frames.
  *
  * `endOverride` replaces the final ring (the crimp junction) so the woven
- * band can terminate inside the metal clasp instead of sharing its centre.
+ * band can terminate inside the metal barrel instead of sharing its centre.
+ * `twist` rolls the section about its own tangent, peaking at mid-span and
+ * falling to zero at the pinned shoulder and the clamped end.
  */
 export function updateBandGeometry(
   geometry: THREE.BufferGeometry,
   points: THREE.Vector3[],
-  width: number,
-  thickness: number,
-  repeatLength: number,
-  vOffset = 0,
   endOverride?: THREE.Vector3,
-  taperRings = 5
+  twist = 0
 ) {
   const rings = points.length;
   const position = geometry.attributes.position as THREE.BufferAttribute;
+  const normals = geometry.attributes.normal as THREE.BufferAttribute;
   const uv = geometry.attributes.uv as THREE.BufferAttribute;
   const printMix = geometry.attributes.printMix as THREE.BufferAttribute;
-  const halfWidth = width / 2;
-  const halfThickness = thickness / 2;
-  const edgeU = Math.min(0.5, thickness / width);
+  const halfWidth = webbing.width / 2;
+  const halfThickness = webbing.thickness / 2;
 
-  let arcLength = vOffset;
+  let arcLength = 0;
 
   for (let i = 0; i < rings; i += 1) {
     const point = ringPoint(points, i, endOverride);
     const prev = i > 0 ? ringPoint(points, i - 1, endOverride) : point;
-    const next =
-      i < rings - 1 ? ringPoint(points, i + 1, endOverride) : point;
+    const next = i < rings - 1 ? ringPoint(points, i + 1, endOverride) : point;
 
     if (i === 0) {
       tangent.copy(next).sub(point).normalize();
@@ -246,46 +353,45 @@ export function updateBandGeometry(
     previousTangent.copy(tangent);
     binormal.crossVectors(faceNormal, tangent).normalize();
 
+    // Roll is applied to a copy so it can't accumulate through the transport.
+    twistedFace.copy(faceNormal);
+    twistedBinormal.copy(binormal);
+    if (twist !== 0) {
+      roll.setFromAxisAngle(tangent, twist * Math.sin((i / (rings - 1)) * Math.PI));
+      twistedFace.applyQuaternion(roll);
+      twistedBinormal.applyQuaternion(roll);
+    }
+
     // Negated because flipY puts v=0 at the bottom of the source canvas,
     // which would otherwise run the printed branding up the strap mirrored.
-    const v = -arcLength / repeatLength;
+    const v = -arcLength / webbing.textureRepeatLength;
     const mix = printMixForRing(i, rings);
     const base = i * VERTS_PER_RING;
-    const taper = endTaper(i, rings, taperRings);
-    const ringHalfWidth = halfWidth * taper;
-    const ringHalfThickness = halfThickness * taper;
+    const ringHalfWidth = halfWidth * endTaper(i, rings, TAPER_WIDTH);
+    const ringHalfThickness =
+      halfThickness * endTaper(i, rings, TAPER_THICKNESS);
 
-    // Cross-section corners, walked so each face gets its own vertex pair.
-    const c0 = [ringHalfWidth, ringHalfThickness] as const;
-    const c1 = [-ringHalfWidth, ringHalfThickness] as const;
-    const c2 = [-ringHalfWidth, -ringHalfThickness] as const;
-    const c3 = [ringHalfWidth, -ringHalfThickness] as const;
-
-    const layout: Array<readonly [readonly [number, number], number]> = [
-      [c1, 0],
-      [c0, 1],
-      [c0, 1],
-      [c3, 1 - edgeU],
-      [c3, 1],
-      [c2, 0],
-      [c2, edgeU],
-      [c1, 0],
-    ];
-
-    for (let slot = 0; slot < VERTS_PER_RING; slot += 1) {
-      const [[alongWidth, alongThickness], u] = layout[slot];
+    for (let k = 0; k < VERTS_PER_RING; k += 1) {
+      const profile = TAPE_PROFILE[k];
       corner
         .copy(point)
-        .addScaledVector(binormal, alongWidth)
-        .addScaledVector(faceNormal, alongThickness);
-      position.setXYZ(base + slot, corner.x, corner.y, corner.z);
-      uv.setXY(base + slot, u, v);
-      printMix.setX(base + slot, mix);
+        .addScaledVector(twistedBinormal, profile.su * ringHalfWidth)
+        .addScaledVector(twistedFace, profile.sv * ringHalfThickness);
+      position.setXYZ(base + k, corner.x, corner.y, corner.z);
+
+      corner
+        .copy(twistedBinormal)
+        .multiplyScalar(profile.nu)
+        .addScaledVector(twistedFace, profile.nv);
+      normals.setXYZ(base + k, corner.x, corner.y, corner.z);
+
+      uv.setXY(base + k, profile.u, v);
+      printMix.setX(base + k, mix);
     }
   }
 
   position.needsUpdate = true;
+  normals.needsUpdate = true;
   uv.needsUpdate = true;
   printMix.needsUpdate = true;
-  geometry.computeVertexNormals();
 }

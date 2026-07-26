@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Environment, Lightformer, RoundedBox } from "@react-three/drei";
+import { Environment, Lightformer } from "@react-three/drei";
 import * as THREE from "three";
 import type { MousePosition } from "@/lib/hero-webgl/config";
 import {
@@ -12,18 +12,32 @@ import {
 } from "@/lib/hero-webgl/lanyard-config";
 import { LanyardSimulation } from "@/lib/hero-webgl/lanyard-physics";
 import {
+  cardBowAt,
+  cardBowSlopeAt,
   createBandGeometry,
   createCardBodyGeometry,
   createCardFaceGeometry,
   updateBandGeometry,
 } from "@/lib/hero-webgl/badge-geometry";
 import {
+  CLAW_GATE_HINGE,
+  createClawBodyGeometry,
+  createClawGateGeometry,
+  createCrimpGeometry,
+  createSplitRingGeometry,
+  createSwivelCollarGeometry,
+  createSwivelStemGeometry,
+} from "@/lib/hero-webgl/hardware-geometry";
+import {
   createBadgeTextures,
   createHologramThicknessTexture,
   resolveFontStacks,
   type BadgeIdentity,
 } from "@/lib/hero-webgl/badge-textures";
-import { createWebbingTextures } from "@/lib/hero-webgl/lanyard-texture";
+import {
+  createHardwareTextures,
+  createWebbingTextures,
+} from "@/lib/hero-webgl/lanyard-texture";
 
 type LanyardBadgeSceneProps = {
   mouse: MousePosition;
@@ -39,6 +53,8 @@ const FACE_OFFSET = card.thickness / 2 + 0.0005;
 const RING_LOCAL_Y = card.height / 2 - card.slot.inset;
 /** Prefer the clasp face toward the camera when the strap plane is ambiguous. */
 const VIEW_AXIS = new THREE.Vector3(0, 0, 1);
+/** Front surface of the barrel, so pressed details sit proud of it. */
+const CRIMP_FACE_Z = hardware.crimpDepth / 2;
 
 /** Soft elliptical wall shadow that never clips at the shadow-map frustum. */
 function createSoftShadowTexture() {
@@ -89,85 +105,94 @@ function useFontStacks() {
   return stacks;
 }
 
-/** Crimp, swivel and hook: the metalwork joining the webbing to the slot. */
-function Hardware({ material }: { material: THREE.Material }) {
-  const gap = 1.05;
-
-  return (
-    <>
-      <RoundedBox
-        args={[hardware.crimpWidth, hardware.crimpHeight, hardware.crimpDepth]}
-        radius={0.012}
-        smoothness={4}
-        position={[0, -hardware.crimpHeight * 0.5 + 0.05, 0]}
-        material={material}
-      />
-
-      {/* Pressed ridge across the crimp face. */}
-      <mesh position={[0, -0.02, hardware.crimpDepth * 0.5]} material={material}>
-        <boxGeometry args={[hardware.crimpWidth * 0.82, 0.012, 0.006]} />
-      </mesh>
-
-      {[-1, 1].map((side) => (
-        <mesh
-          key={side}
-          position={[side * hardware.crimpWidth * 0.3, -0.055, hardware.crimpDepth * 0.5]}
-          rotation={[Math.PI / 2, 0, 0]}
-          material={material}
-        >
-          <cylinderGeometry args={[0.009, 0.009, 0.006, 12]} />
-        </mesh>
-      ))}
-
-      {/* Swivel collar and stem down to the hook. */}
-      <mesh position={[0, -0.09, 0]} material={material}>
-        <cylinderGeometry
-          args={[hardware.stemRadius * 1.6, hardware.stemRadius * 1.6, 0.016, 20]}
-        />
-      </mesh>
-      <mesh position={[0, -0.155, 0]} material={material}>
-        <cylinderGeometry args={[hardware.stemRadius, hardware.stemRadius, 0.13, 20]} />
-      </mesh>
-
-      {/* Hook, rolled so its opening sits at the top where the stem enters. */}
-      <mesh
-        position={[0, -0.26, 0]}
-        rotation={[0, 0, Math.PI / 2 + gap / 2]}
-        material={material}
-      >
-        <torusGeometry
-          args={[hardware.hookRadius, hardware.hookTube, 14, 48, Math.PI * 2 - gap]}
-        />
-      </mesh>
-    </>
-  );
-}
+type ClaspGeometries = {
+  crimp: THREE.BufferGeometry;
+  collar: THREE.BufferGeometry;
+  stem: THREE.BufferGeometry;
+  clawBody: THREE.BufferGeometry;
+  clawGate: THREE.BufferGeometry;
+};
 
 /**
- * Short lengths of webbing gripped inside the barrel. Parented to the clasp so
- * they transform with the metal and can never depth-sort behind it the way a
- * free rope tip can when the V folds under interaction.
+ * Crimp barrel, swivel and lobster claw. Everything below `swivelRef` turns
+ * with the card while the barrel stays square to the webbing, which is the
+ * whole point of a swivel and stops the claw shearing through the split ring
+ * as the badge yaws.
  */
-function CrimpWebbingStubs({ material }: { material: THREE.Material }) {
-  const stubHeight = hardware.crimpEntryY + 0.055;
-
+function Clasp({
+  geometries,
+  crimpMetal,
+  metal,
+  swivelRef,
+}: {
+  geometries: ClaspGeometries;
+  crimpMetal: THREE.Material;
+  metal: THREE.Material;
+  swivelRef: RefObject<THREE.Group | null>;
+}) {
   return (
     <>
+      <mesh geometry={geometries.crimp} material={crimpMetal} />
+
+      {/* Pressed seam across the barrel, and the rivets that close it. */}
+      <mesh
+        position={[0, hardware.crimpTopY - 0.034, CRIMP_FACE_Z - 0.002]}
+        material={metal}
+      >
+        <boxGeometry args={[hardware.crimpWidth * 0.7, 0.009, 0.008]} />
+      </mesh>
       {[-1, 1].map((side) => (
         <mesh
           key={side}
           position={[
-            side * hardware.crimpEntrySpread,
-            hardware.crimpEntryY - stubHeight * 0.25,
-            -webbing.thickness * 0.35,
+            side * hardware.crimpWidth * 0.24,
+            hardware.crimpTopY - 0.086,
+            CRIMP_FACE_Z - 0.002,
           ]}
-          material={material}
+          rotation={[Math.PI / 2, 0, 0]}
+          material={metal}
         >
-          <boxGeometry
-            args={[webbing.width * 0.42, stubHeight, webbing.thickness * 0.95]}
-          />
+          <cylinderGeometry args={[0.0095, 0.0095, 0.008, 14]} />
         </mesh>
       ))}
+
+      <mesh geometry={geometries.collar} material={metal} />
+
+      <group ref={swivelRef}>
+        <mesh geometry={geometries.stem} material={metal} />
+
+        <group position={[0, hardware.clawApexY, 0]}>
+          <mesh geometry={geometries.clawBody} material={metal} />
+          <mesh
+            geometry={geometries.clawGate}
+            position={[0, 0, hardware.clawTube * 0.36]}
+            material={metal}
+          />
+
+          {/* Hinge pin, and the thumb pad that draws the gate back. */}
+          <mesh
+            position={[CLAW_GATE_HINGE.x, CLAW_GATE_HINGE.y, 0]}
+            rotation={[Math.PI / 2, 0, 0]}
+            material={metal}
+          >
+            <cylinderGeometry
+              args={[0.0055, 0.0055, hardware.clawTube * 2.6, 12]}
+            />
+          </mesh>
+          <mesh
+            position={[
+              CLAW_GATE_HINGE.x - 0.014,
+              CLAW_GATE_HINGE.y + 0.006,
+              hardware.clawTube * 0.36,
+            ]}
+            rotation={[0, 0, -0.6]}
+            scale={[1.25, 0.62, 0.4]}
+            material={metal}
+          >
+            <sphereGeometry args={[0.012, 14, 10]} />
+          </mesh>
+        </group>
+      </group>
     </>
   );
 }
@@ -184,6 +209,7 @@ export function LanyardBadgeScene({
 
   const cardRef = useRef<THREE.Group>(null);
   const hardwareRef = useRef<THREE.Group>(null);
+  const swivelRef = useRef<THREE.Group>(null);
   const softShadowRef = useRef<THREE.Mesh>(null);
 
   const simulation = useMemo(() => {
@@ -215,6 +241,12 @@ export function LanyardBadgeScene({
     return textures;
   }, [palette, identity, anisotropy, fonts]);
 
+  const hardwareTextures = useMemo(() => {
+    const textures = createHardwareTextures();
+    textures.roughnessMap.anisotropy = anisotropy;
+    return textures;
+  }, [anisotropy]);
+
   const hologramThickness = useMemo(() => createHologramThicknessTexture(), []);
   const softShadowTexture = useMemo(() => createSoftShadowTexture(), []);
 
@@ -223,16 +255,25 @@ export function LanyardBadgeScene({
       new THREE.MeshPhysicalMaterial({
         color: new THREE.Color(palette.hardware),
         metalness: 1,
-        roughness: 0.18,
-        envMapIntensity: 1.8,
-        // Bias the clasp forward in the depth buffer so thin webbing near the
-        // mouth can't win the depth test and hide the barrel that clamps it.
-        polygonOffset: true,
-        polygonOffsetFactor: -1,
-        polygonOffsetUnits: -2,
+        // The map carries the polish; this only scales it.
+        roughness: 0.62,
+        roughnessMap: hardwareTextures.roughnessMap,
+        normalMap: hardwareTextures.normalMap,
+        normalScale: new THREE.Vector2(0.35, 0.35),
+        envMapIntensity: 1.9,
       }),
-    [palette.hardware]
+    [palette.hardware, hardwareTextures]
   );
+
+  // The barrel is the one part the webbing can reach in a hard pose, so it
+  // keeps a small depth bias as insurance against a strand sorting in front.
+  const crimpMaterial = useMemo(() => {
+    const material = metalMaterial.clone();
+    material.polygonOffset = true;
+    material.polygonOffsetFactor = -1;
+    material.polygonOffsetUnits = -1;
+    return material;
+  }, [metalMaterial]);
 
   const webbingMaterial = useMemo(() => {
     const material = new THREE.MeshPhysicalMaterial({
@@ -289,34 +330,19 @@ varying float vPrintMix;`
     return material;
   }, [webbingTextures, palette.strapPrint]);
 
-  // Plain weave inside the barrel — no branding map, so stubs stay clean.
-  const webbingStubMaterial = useMemo(
-    () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(palette.strap),
-        normalMap: webbingTextures.normalMap,
-        roughnessMap: webbingTextures.roughnessMap,
-        normalScale: new THREE.Vector2(0.85, 0.85),
-        roughness: 1,
-        metalness: 0,
-        sheen: 0.25,
-        sheenRoughness: 0.85,
-        sheenColor: palette.strapPrint,
-        envMapIntensity: 0.3,
-      }),
-    [webbingTextures, palette.strap, palette.strapPrint]
-  );
-
   useEffect(() => () => badgeTextures.dispose(), [badgeTextures]);
   useEffect(() => () => webbingTextures.dispose(), [webbingTextures]);
+  useEffect(() => () => hardwareTextures.dispose(), [hardwareTextures]);
   useEffect(() => () => metalMaterial.dispose(), [metalMaterial]);
+  useEffect(() => () => crimpMaterial.dispose(), [crimpMaterial]);
   useEffect(() => () => webbingMaterial.dispose(), [webbingMaterial]);
-  useEffect(() => () => webbingStubMaterial.dispose(), [webbingStubMaterial]);
   useEffect(() => () => hologramThickness.dispose(), [hologramThickness]);
   useEffect(() => () => softShadowTexture.dispose(), [softShadowTexture]);
 
   const cardBodyGeometry = useMemo(() => createCardBodyGeometry(), []);
-  const cardFaceGeometry = useMemo(() => createCardFaceGeometry(), []);
+  const cardFrontGeometry = useMemo(() => createCardFaceGeometry(1), []);
+  const cardBackGeometry = useMemo(() => createCardFaceGeometry(-1), []);
+  const splitRingGeometry = useMemo(() => createSplitRingGeometry(), []);
   const leftBandGeometry = useMemo(
     () => createBandGeometry(webbing.segments / 2),
     []
@@ -326,20 +352,45 @@ varying float vPrintMix;`
     []
   );
 
+  const claspGeometries = useMemo<ClaspGeometries>(
+    () => ({
+      crimp: createCrimpGeometry(),
+      collar: createSwivelCollarGeometry(),
+      stem: createSwivelStemGeometry(),
+      clawBody: createClawBodyGeometry(),
+      clawGate: createClawGateGeometry(),
+    }),
+    []
+  );
+
   useEffect(() => {
     return () => {
       cardBodyGeometry.dispose();
-      cardFaceGeometry.dispose();
+      cardFrontGeometry.dispose();
+      cardBackGeometry.dispose();
+      splitRingGeometry.dispose();
       leftBandGeometry.dispose();
       rightBandGeometry.dispose();
+      for (const geometry of Object.values(claspGeometries)) {
+        geometry.dispose();
+      }
     };
-  }, [cardBodyGeometry, cardFaceGeometry, leftBandGeometry, rightBandGeometry]);
+  }, [
+    cardBodyGeometry,
+    cardFrontGeometry,
+    cardBackGeometry,
+    splitRingGeometry,
+    leftBandGeometry,
+    rightBandGeometry,
+    claspGeometries,
+  ]);
 
   const ringWorld = useMemo(() => new THREE.Vector3(), []);
   const leftBandTip = useMemo(() => new THREE.Vector3(), []);
   const rightBandTip = useMemo(() => new THREE.Vector3(), []);
   const strapLeft = useMemo(() => new THREE.Vector3(), []);
   const strapRight = useMemo(() => new THREE.Vector3(), []);
+  const cardForward = useMemo(() => new THREE.Vector3(), []);
   const hardwareBasis = useMemo(
     () => ({
       x: new THREE.Vector3(),
@@ -380,18 +431,14 @@ varying float vPrintMix;`
 
       const leftStrand = simulation.leftStrand;
       const rightStrand = simulation.rightStrand;
-      strapLeft
-        .copy(leftStrand[leftStrand.length - 2])
-        .sub(simulation.crimp);
-      strapRight
-        .copy(rightStrand[rightStrand.length - 2])
-        .sub(simulation.crimp);
+      strapLeft.copy(leftStrand[leftStrand.length - 2]).sub(simulation.crimp);
+      strapRight.copy(rightStrand[rightStrand.length - 2]).sub(simulation.crimp);
 
       const { x, y, z, matrix } = hardwareBasis;
-      // Hang axis: crimp above the ring, stem and hook reach down toward it.
+      // Hang axis: crimp above the ring, stem and claw reach down toward it.
       y.copy(simulation.crimp).sub(ringWorld).normalize();
 
-      // Crimp faces with the webbing V — same plane the straps approach in —
+      // Barrel faces with the webbing V — same plane the straps approach in —
       // rather than the card, so a yawed badge can't tuck the metal behind the
       // weave the way a free particle at the junction otherwise would.
       x.copy(strapRight).sub(strapLeft);
@@ -411,21 +458,43 @@ varying float vPrintMix;`
 
       matrix.makeBasis(x, y, z);
       hardwareGroup.quaternion.setFromRotationMatrix(matrix);
-      // Seat the barrel on the front of the weave, not inside its thickness.
       hardwareGroup.position
         .copy(simulation.crimp)
         .addScaledVector(z, hardware.crimpFrontBias);
 
-      // Two strap ends meet the parented stubs just above the barrel mouth —
-      // the free rope never runs through the metal itself.
+      // The swivel: below the joint the clasp turns to face the same way as
+      // the card, so the claw and the split ring stay properly interlocked.
+      const swivelGroup = swivelRef.current;
+      if (swivelGroup) {
+        cardForward.set(0, 0, 1).applyQuaternion(simulation.cardQuaternion);
+        cardForward.addScaledVector(y, -cardForward.dot(y));
+        if (cardForward.lengthSq() > 1e-8) {
+          cardForward.normalize();
+          swivelGroup.rotation.y = Math.atan2(
+            cardForward.dot(x),
+            cardForward.dot(z)
+          );
+        }
+      }
+
+      // Both strap ends run down into the barrel and stop well inside it,
+      // stacked front to back the way two tape ends really sit in a crimp.
       leftBandTip
         .copy(simulation.crimp)
-        .addScaledVector(y, hardware.crimpEntryY + 0.04)
-        .addScaledVector(x, -hardware.crimpEntrySpread);
+        .addScaledVector(y, hardware.crimpEntryY)
+        .addScaledVector(x, -hardware.crimpEntrySpread)
+        .addScaledVector(
+          z,
+          hardware.crimpFrontBias - hardware.crimpEntryDepth
+        );
       rightBandTip
         .copy(simulation.crimp)
-        .addScaledVector(y, hardware.crimpEntryY + 0.04)
-        .addScaledVector(x, hardware.crimpEntrySpread);
+        .addScaledVector(y, hardware.crimpEntryY)
+        .addScaledVector(x, hardware.crimpEntrySpread)
+        .addScaledVector(
+          z,
+          hardware.crimpFrontBias + hardware.crimpEntryDepth
+        );
     } else {
       leftBandTip.copy(simulation.crimp);
       rightBandTip.copy(simulation.crimp);
@@ -434,20 +503,14 @@ varying float vPrintMix;`
     updateBandGeometry(
       leftBandGeometry,
       simulation.leftStrand,
-      webbing.width,
-      webbing.thickness,
-      webbing.textureRepeatLength,
-      0,
-      leftBandTip
+      leftBandTip,
+      webbing.twist
     );
     updateBandGeometry(
       rightBandGeometry,
       simulation.rightStrand,
-      webbing.width,
-      webbing.thickness,
-      webbing.textureRepeatLength,
-      0,
-      rightBandTip
+      rightBandTip,
+      -webbing.twist
     );
 
     const softShadow = softShadowRef.current;
@@ -491,6 +554,13 @@ varying float vPrintMix;`
           scale={[1.2, 5, 1]}
           target={[0, 0, 0]}
         />
+        {/* Narrow strip that draws a long specular down the clasp. */}
+        <Lightformer
+          intensity={4}
+          position={[1.1, 1.8, 2.4]}
+          scale={[0.3, 2.2, 1]}
+          target={[0, 0.6, 0]}
+        />
         <Lightformer
           form="ring"
           intensity={0.7}
@@ -529,8 +599,12 @@ varying float vPrintMix;`
       <mesh geometry={rightBandGeometry} frustumCulled={false} material={webbingMaterial} />
 
       <group ref={hardwareRef}>
-        <CrimpWebbingStubs material={webbingStubMaterial} />
-        <Hardware material={metalMaterial} />
+        <Clasp
+          geometries={claspGeometries}
+          crimpMetal={crimpMaterial}
+          metal={metalMaterial}
+          swivelRef={swivelRef}
+        />
       </group>
 
       <group ref={cardRef}>
@@ -545,7 +619,7 @@ varying float vPrintMix;`
           />
         </mesh>
 
-        <mesh geometry={cardFaceGeometry} position={[0, 0, FACE_OFFSET]}>
+        <mesh geometry={cardFrontGeometry} position={[0, 0, FACE_OFFSET]}>
           <meshPhysicalMaterial
             map={badgeTextures.front}
             clearcoatRoughnessMap={badgeTextures.gloss}
@@ -558,7 +632,7 @@ varying float vPrintMix;`
         </mesh>
 
         <mesh
-          geometry={cardFaceGeometry}
+          geometry={cardBackGeometry}
           position={[0, 0, -FACE_OFFSET]}
           rotation={[0, Math.PI, 0]}
         >
@@ -574,10 +648,19 @@ varying float vPrintMix;`
         </mesh>
 
         {/* Holographic security patch — added over the print so it reads as
-            foil catching light rather than a grey sticker. */}
+            foil catching light rather than a grey sticker. Tilted to lie flat
+            on the card's curl. */}
         <mesh
-          position={[card.hologram.x, card.hologram.y, FACE_OFFSET + 0.0006]}
-          rotation={[0, 0, Math.PI * 0.12]}
+          position={[
+            card.hologram.x,
+            card.hologram.y,
+            FACE_OFFSET + cardBowAt(card.hologram.x) + 0.0012,
+          ]}
+          rotation={[
+            0,
+            Math.atan(-cardBowSlopeAt(card.hologram.x)),
+            Math.PI * 0.12,
+          ]}
         >
           <circleGeometry args={[card.hologram.radius, 48]} />
           <meshPhysicalMaterial
@@ -598,12 +681,11 @@ varying float vPrintMix;`
 
         {/* Split ring riding in the punched slot. */}
         <mesh
-          position={[0, RING_LOCAL_Y, 0]}
+          geometry={splitRingGeometry}
+          position={[0, RING_LOCAL_Y, cardBowAt(0)]}
           rotation={[0, Math.PI / 2, 0]}
           material={metalMaterial}
-        >
-          <torusGeometry args={[hardware.ringRadius, hardware.ringTube, 16, 40]} />
-        </mesh>
+        />
       </group>
     </>
   );
