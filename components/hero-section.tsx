@@ -1,89 +1,103 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@heroui/react";
 import { useHeroInteraction } from "@/components/hero-webgl/use-hero-interaction";
 import { RoleRotator } from "@/components/role-rotator";
 import { heroTagline, siteConfig } from "@/lib/data";
 
-const HeroMorphCanvas = dynamic(
+const HeroBadgeCanvas = dynamic(
   () =>
-    import("@/components/hero-webgl/hero-morph-canvas").then(
-      (mod) => mod.HeroMorphCanvas
+    import("@/components/hero-webgl/hero-badge-canvas").then(
+      (mod) => mod.HeroBadgeCanvas
     ),
   { ssr: false }
 );
 
-export function HeroSection() {
-  const router = useRouter();
-  const { mouse, interactive, onPointerMove, onPointerLeave } =
-    useHeroInteraction();
-  const [shapeStep, setShapeStep] = useState(0);
+function useLargeScreen() {
+  const [isLarge, setIsLarge] = useState(false);
 
-  const advanceShape = useCallback(() => {
-    setShapeStep((step) => step + 1);
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsLarge(media.matches);
+
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
   }, []);
 
-  const handleHeroClick = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      const target = event.target as HTMLElement;
-      if (target.closest("a, button, [role='button']")) return;
-      advanceShape();
-    },
-    [advanceShape]
-  );
+  return isLarge;
+}
+
+export function HeroSection() {
+  const router = useRouter();
+  const showBadge = useLargeScreen();
+  const {
+    mouse,
+    interactive,
+    pointerActive,
+    onPointerEnter,
+    onPointerMove,
+    onPointerLeave,
+  } = useHeroInteraction();
 
   return (
     <section
-      className="hero-editorial relative flex min-h-screen flex-col items-center justify-center overflow-hidden pt-20"
+      className="hero-editorial relative flex min-h-screen flex-col justify-center overflow-hidden pt-20"
+      onPointerEnter={onPointerEnter}
       onPointerMove={onPointerMove}
       onPointerLeave={onPointerLeave}
-      onClick={handleHeroClick}
     >
-      <HeroMorphCanvas
-        shapeStep={shapeStep}
-        mouse={mouse}
-        interactive={interactive}
-      />
+      <div className="section-container relative z-10 py-12 md:py-16 lg:py-20">
+        <div className="hero-split grid grid-cols-1 items-center lg:grid-cols-2 lg:gap-12 xl:gap-16">
+          <div className="hero-copy flex flex-col items-center text-center lg:items-start lg:text-left">
+            <h1 className="animate-fade-up mb-4 text-5xl font-semibold tracking-tight md:text-6xl lg:text-7xl xl:text-8xl">
+              <span className="gradient-text">{siteConfig.name}</span>
+            </h1>
 
-      <div className="section-container relative z-10 flex flex-col items-center py-16 text-center">
-        <p className="animate-fade-up mb-6 font-mono text-xs uppercase tracking-[0.2em] text-site-faint">
-          {siteConfig.availability} · {siteConfig.location}
-        </p>
+            <div className="animate-fade-up-delay-1 w-full">
+              <RoleRotator className="mx-auto mb-5 lg:mx-0" />
+            </div>
 
-        <h1 className="animate-fade-up-delay-1 mb-4 text-5xl font-semibold tracking-tight md:text-7xl lg:text-8xl">
-          <span className="gradient-text">{siteConfig.name}</span>
-        </h1>
+            <p className="animate-fade-up-delay-2 mb-8 max-w-xl text-lg text-site-muted md:text-xl">
+              {heroTagline}
+            </p>
 
-        <div className="animate-fade-up-delay-2">
-          <RoleRotator />
-        </div>
+            <div className="animate-fade-up-delay-3 flex w-full flex-wrap justify-center gap-4 lg:justify-start">
+              <Button
+                variant="primary"
+                size="lg"
+                onPress={() => {
+                  document
+                    .getElementById("work")
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                View my work
+              </Button>
+              <Button
+                variant="secondary"
+                size="lg"
+                onPress={() => {
+                  router.push("/contact");
+                }}
+              >
+                Start a conversation
+              </Button>
+            </div>
+          </div>
 
-        <p className="animate-fade-up-delay-2 mx-auto mb-10 max-w-2xl text-lg text-site-muted md:text-xl">
-          {heroTagline}
-        </p>
-
-        <div className="animate-fade-up-delay-3 flex flex-wrap justify-center gap-4">
-          <Button
-            variant="primary"
-            size="lg"
-            onPress={() => {
-              document.getElementById("work")?.scrollIntoView({ behavior: "smooth" });
-            }}
-          >
-            View my work
-          </Button>
-          <Button
-            variant="secondary"
-            size="lg"
-            onPress={() => {
-              router.push("/contact");
-            }}
-          >
-            Start a conversation
-          </Button>
+          {showBadge ? (
+            <div className="hero-visual flex w-full justify-end">
+              <HeroBadgeCanvas
+                mouse={mouse}
+                interactive={interactive}
+                pointerActive={pointerActive}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 

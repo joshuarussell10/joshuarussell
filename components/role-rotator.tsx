@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { heroRoles } from "@/lib/data";
 
-export function RoleRotator() {
+type RoleRotatorProps = {
+  className?: string;
+  onRoleChange?: () => void;
+};
+
+export function RoleRotator({ className = "", onRoleChange }: RoleRotatorProps) {
+  const onRoleChangeRef = useRef(onRoleChange);
+  onRoleChangeRef.current = onRoleChange;
   const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -24,6 +31,7 @@ export function RoleRotator() {
       window.setTimeout(() => {
         setIndex((current) => (current + 1) % heroRoles.length);
         setVisible(true);
+        onRoleChangeRef.current?.();
       }, 280);
     }, 3000);
 
@@ -32,7 +40,7 @@ export function RoleRotator() {
 
   return (
     <p
-      className="role-rotator mx-auto mb-5 max-w-xl text-xl font-medium text-site-accent md:text-2xl"
+      className={`role-rotator max-w-xl text-xl font-medium text-site-accent md:text-2xl ${className}`}
       aria-live={mounted ? "polite" : "off"}
     >
       <span

@@ -6,6 +6,7 @@ import type { MousePosition } from "@/lib/hero-webgl/config";
 export function useHeroInteraction() {
   const [mouse, setMouse] = useState<MousePosition>({ x: 0, y: 0 });
   const [interactive, setInteractive] = useState(false);
+  const [pointerActive, setPointerActive] = useState(false);
 
   useEffect(() => {
     const reducedMotion = window.matchMedia(
@@ -15,9 +16,15 @@ export function useHeroInteraction() {
     setInteractive(!reducedMotion && !coarsePointer);
   }, []);
 
+  const onPointerEnter = () => {
+    if (!interactive) return;
+    setPointerActive(true);
+  };
+
   const onPointerMove = (event: React.PointerEvent<HTMLElement>) => {
     if (!interactive) return;
 
+    setPointerActive(true);
     const rect = event.currentTarget.getBoundingClientRect();
     setMouse({
       x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -26,8 +33,16 @@ export function useHeroInteraction() {
   };
 
   const onPointerLeave = () => {
+    setPointerActive(false);
     setMouse({ x: 0, y: 0 });
   };
 
-  return { mouse, interactive, onPointerMove, onPointerLeave };
+  return {
+    mouse,
+    interactive,
+    pointerActive,
+    onPointerEnter,
+    onPointerMove,
+    onPointerLeave,
+  };
 }

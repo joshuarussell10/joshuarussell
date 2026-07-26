@@ -141,6 +141,39 @@ body {
   isolation: isolate;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.hero-badge-canvas {
+  touch-action: none;
+  flex-shrink: 0;
+}
+
+.hero-split {
+  min-height: min(70vh, 720px);
+}
+
+@media (max-width: 1023px) {
+  .hero-split {
+    min-height: 0;
+  }
+}
+
+.hero-badge-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .role-rotator {
   min-height: 1.5em;
 }
