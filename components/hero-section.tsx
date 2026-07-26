@@ -51,7 +51,7 @@ export function HeroSection() {
       onPointerLeave={onPointerLeave}
     >
       {showBadge ? (
-        <div className="hero-visual pointer-events-none absolute inset-y-0 right-0 z-0 hidden w-[min(56%,720px)] lg:block">
+        <div className="hero-visual pointer-events-none absolute inset-y-0 right-12 z-0 hidden w-[min(54%,700px)] lg:block xl:right-16">
           <HeroBadgeCanvas
             mouse={mouse}
             interactive={interactive}

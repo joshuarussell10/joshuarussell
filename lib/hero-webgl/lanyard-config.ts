@@ -48,7 +48,7 @@ export const lanyardConfig = {
      * canvas: straps run off the top edge, and the soft shadow has room to
      * fall away left and down without hitting the frame.
      */
-    lookAt: [-0.48, -0.45, 0] as [number, number, number],
+    lookAt: [-0.02, -0.45, 0] as [number, number, number],
     fov: 27,
   },
   card: {
