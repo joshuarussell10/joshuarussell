@@ -1,11 +1,11 @@
 import type { MousePosition } from "@/lib/hero-webgl/config";
 
 export type LanyardPalette = {
-  /** Woven webbing base tone. */
+  /** Round braided cord base tone. */
   strap: string;
-  /** Colour of the branding printed onto the webbing. */
+  /** Colour of the branding printed onto the cord. */
   strapPrint: string;
-  /** Thread colour of the stitched strap edges. */
+  /** Reserved cord accent (unused on round braid; kept for palette parity). */
   strapEdge: string;
   /** Brushed nickel hardware. */
   hardware: string;
@@ -38,7 +38,7 @@ export type LanyardPalette = {
 /**
  * Card proportions follow ISO/IEC 7810 ID-1 (54 x 85.6 x 0.76 mm) held in
  * portrait, scaled so that 1 unit ~= 47 mm. Everything else is measured
- * against that so the hardware and webbing stay believable next to it.
+ * against that so the hardware and cord stay believable next to it.
  */
 export const lanyardConfig = {
   camera: {
@@ -80,26 +80,34 @@ export const lanyardConfig = {
     /** Pinned ends sit just above the viewport so the strands run off-frame. */
     anchorY: 2.85,
     anchorSpread: 0.82,
-    anchorZ: -0.03,
+    /** Keep the pins in the clasp plane so the V reads as straight on screen. */
+    anchorZ: 0,
     /** Where the strands meet at rest; sets the overall rope length. */
-    crimpRestY: 0.735,
-    /** 12 mm flat woven polyester at the card's 54 mm reference width. */
-    width: 0.26,
-    thickness: 0.015,
-    /** Points around the tape's cross-section. */
-    profileSegments: 20,
-    /** Section squareness: 2 is an ellipse, 4 a squircle. */
-    profileExponent: 3.4,
-    /** Depth of the cross-sectional cup — flat tape never lies dead flat. */
-    curl: 0.009,
-    /** Peak roll about the strap's own axis at mid-span, in radians. */
-    twist: 0.42,
+    crimpRestY: 0.651,
+    /**
+     * Round braided polyester cord. ~2.6 mm at the card's 54 mm reference
+     * width — a typical badge-string diameter, not a flat tape.
+     */
+    diameter: 0.055,
+    /** Points around the circular cross-section. */
+    profileSegments: 16,
+    /**
+     * Gentle helical roll so the braid catches light as the cord swings.
+     * Peaks at mid-span and falls to zero at the shoulders and the tip.
+     */
+    twist: 0.12,
     /** Rope resolution: must stay even so the junction lands on a vertex. */
     segments: 44,
-    /** Extra length over the straight-line run, giving the strands their sag. */
-    slack: 1.035,
-    /** World length covered by one repeat of the webbing texture. */
-    textureRepeatLength: 1.04,
+    /**
+     * Extra length over the straight-line run. A hair over 1 keeps the cord
+     * from buckling under its own constraints while still reading as taut.
+     */
+    slack: 1.004,
+    /**
+     * World length covered by one repeat of the cord texture. Sized so the
+     * braid diamonds stay roughly square around the circumference.
+     */
+    textureRepeatLength: 0.18,
   },
   /**
    * The clasp is measured downward from the crimp centre, which sits at the
@@ -114,44 +122,49 @@ export const lanyardConfig = {
      *   -(clawApexY - clawLength - ringRadius + ringTube - clawTube)
      *   - slot.inset
      */
-    drop: 0.3365,
+    drop: 0.2522,
 
-    /** Folded sheet-metal barrel: wide at the mouth, tapering to the swivel. */
-    crimpWidth: 0.31,
-    crimpDepth: 0.062,
+    /** Folded sheet-metal tip that clamps both cord ends. */
+    crimpWidth: 0.122,
+    crimpDepth: 0.056,
     /** Fraction of the width still left where the barrel meets the swivel. */
-    crimpWaist: 0.5,
+    crimpWaist: 0.55,
     /** Top of the barrel in hardware-local space. */
-    crimpTopY: 0.05,
+    crimpTopY: 0.04,
     /** Bottom of the barrel, and the top of the swivel stack. */
-    swivelTopY: -0.095,
+    swivelTopY: -0.076,
     /**
-     * Where each strap end is buried, far enough inside the barrel that a
-     * hard pointer flick can't work a tip back out through the mouth.
+     * Cord tips stop just above the barrel lip. Ending outside the metal
+     * volume is what stops the braid painting through the pressed face —
+     * round cord is thick enough that any path into the barrel intersects it.
      */
-    crimpEntryY: -0.015,
+    crimpEntryY: 0.048,
     /**
-     * Half-spacing of the two strap ends across the mouth. They overlap the
-     * way two tape ends really do; `crimpEntryDepth` stacks them front to
-     * back so the overlap never z-fights.
+     * Half-spacing of the two cord ends across the mouth.
      */
     crimpEntrySpread: 0.018,
-    crimpEntryDepth: 0.009,
-    /** Nudge the barrel just in front of the strap centreline. */
-    crimpFrontBias: 0.002,
+    /**
+     * Unused for tip depth now that tips stay in the cord plane; kept so
+     * older call sites that still read it don't go undefined.
+     */
+    crimpEntryDepth: 0,
+    /**
+     * Pull the barrel clear in front of the cord plane.
+     */
+    crimpFrontBias: 0.05,
 
-    swivelRadius: 0.031,
-    stemRadius: 0.019,
+    swivelRadius: 0.025,
+    stemRadius: 0.0152,
 
     /** Lobster claw, hung off the bottom of the swivel stem. */
-    clawApexY: -0.168,
-    clawLength: 0.19,
-    clawWidth: 0.14,
-    clawTube: 0.0155,
-    gateTube: 0.0085,
+    clawApexY: -0.134,
+    clawLength: 0.152,
+    clawWidth: 0.112,
+    clawTube: 0.0124,
+    gateTube: 0.0068,
 
-    ringRadius: 0.062,
-    ringTube: 0.014,
+    ringRadius: 0.05,
+    ringTube: 0.0112,
   },
   physics: {
     /**
@@ -164,7 +177,13 @@ export const lanyardConfig = {
     cardRetention: 0.2,
     substep: 1 / 120,
     maxSubsteps: 5,
-    iterations: 16,
+    iterations: 20,
+    /**
+     * How strongly each strand is pulled toward the straight chord between
+     * its pin and the crimp (0–1). Round cord needs this; flat webbing hid
+     * the same bow behind its width.
+     */
+    straightness: 0.7,
     /** Rope points are light, the laminated card is comparatively heavy. */
     ropeInvMass: 1,
     cardInvMass: 0.4,
@@ -184,9 +203,9 @@ export const lanyardConfig = {
     /** How quickly the raw pointer position is followed. */
     pointerLerp: 4.2,
     /** Idle air current so the badge is never perfectly still. */
-    breeze: 2.4,
+    breeze: 0.45,
     /** Simulation steps run before the first frame so it starts settled. */
-    warmupSteps: 320,
+    warmupSteps: 400,
   },
 } as const;
 

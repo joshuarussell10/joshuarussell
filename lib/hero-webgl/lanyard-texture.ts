@@ -2,9 +2,9 @@ import * as THREE from "three";
 import type { FontStacks } from "@/lib/hero-webgl/badge-textures";
 
 export type WebbingTextureSet = {
-  /** Weave with branding printed along the strap. */
+  /** Braid with branding printed along the cord. */
   map: THREE.CanvasTexture;
-  /** Same weave with no branding — used near the clasp. */
+  /** Same braid with no branding — used near the clasp. */
   plainMap: THREE.CanvasTexture;
   normalMap: THREE.CanvasTexture;
   roughnessMap: THREE.CanvasTexture;
@@ -13,8 +13,8 @@ export type WebbingTextureSet = {
 
 const WIDTH = 256;
 const HEIGHT = 1024;
-/** Woven cell size in pixels — sets the visible tightness of the weave. */
-const CELL = 8;
+/** Braid diamond size in pixels. */
+const BRAID = 14;
 
 function createRandom(seed: number) {
   let state = seed >>> 0;
@@ -89,82 +89,69 @@ function heightToNormal(
 }
 
 /**
- * Plain-weave grid: warp threads run along the strap, weft across it, and each
- * crossing alternates which thread sits on top.
+ * Diamond braid typical of round polyester badge cord: two counter-spiraling
+ * yarn sets, alternating over/under so the pattern tiles around the tube.
  */
-function drawWeave(
+function drawBraid(
   ctx: CanvasRenderingContext2D,
   overThread: (over: boolean, shade: number) => string,
   seed: number
 ) {
   const random = createRandom(seed);
-  const cols = Math.ceil(WIDTH / CELL);
-  const rows = Math.ceil(HEIGHT / CELL);
+  const cols = Math.ceil(WIDTH / BRAID) + 2;
+  const rows = Math.ceil(HEIGHT / BRAID) + 2;
 
-  for (let row = 0; row < rows; row += 1) {
-    for (let col = 0; col < cols; col += 1) {
-      const warpOnTop = (row + col) % 2 === 0;
-      // Slight per-thread variation stops the weave looking machine-perfect.
-      const shade = 0.86 + random() * 0.28;
-      ctx.fillStyle = overThread(warpOnTop, shade);
-      ctx.fillRect(col * CELL, row * CELL, CELL, CELL);
+  ctx.fillStyle = overThread(false, 0.92);
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-      // Rounded highlight along the raised thread.
-      const gradient = warpOnTop
-        ? ctx.createLinearGradient(col * CELL, 0, col * CELL + CELL, 0)
-        : ctx.createLinearGradient(0, row * CELL, 0, row * CELL + CELL);
-      gradient.addColorStop(0, "rgba(0,0,0,0.28)");
-      gradient.addColorStop(0.5, "rgba(255,255,255,0.16)");
-      gradient.addColorStop(1, "rgba(0,0,0,0.28)");
+  for (let row = -1; row < rows; row += 1) {
+    for (let col = -1; col < cols; col += 1) {
+      const shade = 0.84 + random() * 0.3;
+      const over = (row + col) % 2 === 0;
+      const x = col * BRAID;
+      const y = row * BRAID;
+
+      ctx.fillStyle = overThread(over, shade);
+      ctx.beginPath();
+      if (over) {
+        // Strand running bottom-left → top-right.
+        ctx.moveTo(x, y + BRAID * 0.5);
+        ctx.lineTo(x + BRAID * 0.5, y);
+        ctx.lineTo(x + BRAID, y + BRAID * 0.5);
+        ctx.lineTo(x + BRAID * 0.5, y + BRAID);
+      } else {
+        // Counter-strand, bottom-right → top-left.
+        ctx.moveTo(x + BRAID * 0.5, y);
+        ctx.lineTo(x + BRAID, y + BRAID * 0.5);
+        ctx.lineTo(x + BRAID * 0.5, y + BRAID);
+        ctx.lineTo(x, y + BRAID * 0.5);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      // Soft highlight along the raised yarn.
+      const gradient = over
+        ? ctx.createLinearGradient(x, y + BRAID, x + BRAID, y)
+        : ctx.createLinearGradient(x + BRAID, y + BRAID, x, y);
+      gradient.addColorStop(0, "rgba(0,0,0,0.22)");
+      gradient.addColorStop(0.45, "rgba(255,255,255,0.14)");
+      gradient.addColorStop(1, "rgba(0,0,0,0.2)");
       ctx.fillStyle = gradient;
-      ctx.fillRect(col * CELL, row * CELL, CELL, CELL);
+      ctx.fill();
     }
   }
 }
 
-/**
- * Woven tape is never perfectly flat — it bows slightly across its width.
- * Baking that falloff in gives the strap volume the flat geometry can't.
- */
-function drawCurvature(ctx: CanvasRenderingContext2D) {
+/** Round cord catches a cylindrical shade across its unwrapped width. */
+function drawCordShade(ctx: CanvasRenderingContext2D) {
   const shade = ctx.createLinearGradient(0, 0, WIDTH, 0);
-  shade.addColorStop(0, "rgba(0,0,0,0.34)");
-  shade.addColorStop(0.18, "rgba(0,0,0,0.1)");
-  shade.addColorStop(0.42, "rgba(255,255,255,0.09)");
-  shade.addColorStop(0.62, "rgba(0,0,0,0)");
-  shade.addColorStop(0.86, "rgba(0,0,0,0.12)");
-  shade.addColorStop(1, "rgba(0,0,0,0.36)");
+  shade.addColorStop(0, "rgba(0,0,0,0.38)");
+  shade.addColorStop(0.22, "rgba(0,0,0,0.08)");
+  shade.addColorStop(0.48, "rgba(255,255,255,0.1)");
+  shade.addColorStop(0.72, "rgba(0,0,0,0.06)");
+  shade.addColorStop(1, "rgba(0,0,0,0.4)");
   ctx.fillStyle = shade;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
-}
-
-function drawEdges(ctx: CanvasRenderingContext2D, edgeColor: string) {
-  const edge = CELL * 1.5;
-
-  const left = ctx.createLinearGradient(0, 0, edge, 0);
-  left.addColorStop(0, edgeColor);
-  left.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = left;
-  ctx.fillRect(0, 0, edge, HEIGHT);
-
-  const right = ctx.createLinearGradient(WIDTH - edge, 0, WIDTH, 0);
-  right.addColorStop(0, "rgba(0,0,0,0)");
-  right.addColorStop(1, edgeColor);
-  ctx.fillStyle = right;
-  ctx.fillRect(WIDTH - edge, 0, edge, HEIGHT);
-
-  // Overlocked stitching just inside each selvedge.
-  ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,0.22)";
-  ctx.lineWidth = 2;
-  ctx.setLineDash([9, 7]);
-  for (const x of [edge * 0.75, WIDTH - edge * 0.75]) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, HEIGHT);
-    ctx.stroke();
-  }
-  ctx.restore();
 }
 
 function drawPrint(
@@ -177,11 +164,11 @@ function drawPrint(
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.fillStyle = color;
-  ctx.font = `600 ${Math.round(WIDTH * 0.14)}px ${mono}`;
+  ctx.font = `600 ${Math.round(WIDTH * 0.11)}px ${mono}`;
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
 
-  // Rotate so the branding runs lengthwise down the strap.
+  // Branding runs lengthwise down one face of the cord.
   ctx.translate(WIDTH / 2, 0);
   ctx.rotate(Math.PI / 2);
 
@@ -305,19 +292,19 @@ export function createHardwareTextures(): HardwareTextureSet {
 export function createWebbingTextures(
   baseColor: string,
   printColor: string,
-  edgeColor: string,
+  _edgeColor: string,
   brand: string,
   fonts: FontStacks
 ): WebbingTextureSet {
   const base = new THREE.Color(baseColor);
 
-  const paintWeave = (ctx: CanvasRenderingContext2D) => {
+  const paintBraid = (ctx: CanvasRenderingContext2D) => {
     ctx.fillStyle = baseColor;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    drawWeave(
+    drawBraid(
       ctx,
-      (warpOnTop, shade) => {
-        const tint = base.clone().multiplyScalar(warpOnTop ? shade : shade * 0.9);
+      (over, shade) => {
+        const tint = base.clone().multiplyScalar(over ? shade : shade * 0.88);
         return `rgb(${Math.round(tint.r * 255)},${Math.round(
           tint.g * 255
         )},${Math.round(tint.b * 255)})`;
@@ -329,18 +316,16 @@ export function createWebbingTextures(
   const plainCanvas = createCanvas(WIDTH, HEIGHT);
   const plainCtx = plainCanvas.getContext("2d");
   if (plainCtx) {
-    paintWeave(plainCtx);
-    drawCurvature(plainCtx);
-    drawEdges(plainCtx, edgeColor);
+    paintBraid(plainCtx);
+    drawCordShade(plainCtx);
   }
 
   const colorCanvas = createCanvas(WIDTH, HEIGHT);
   const colorCtx = colorCanvas.getContext("2d");
   if (colorCtx) {
-    paintWeave(colorCtx);
-    drawPrint(colorCtx, brand, printColor, 0.82, fonts.mono);
-    drawCurvature(colorCtx);
-    drawEdges(colorCtx, edgeColor);
+    paintBraid(colorCtx);
+    drawPrint(colorCtx, brand, printColor, 0.78, fonts.mono);
+    drawCordShade(colorCtx);
   }
 
   const heightCanvas = createCanvas(WIDTH, HEIGHT);
@@ -348,31 +333,27 @@ export function createWebbingTextures(
   if (heightCtx) {
     heightCtx.fillStyle = "#808080";
     heightCtx.fillRect(0, 0, WIDTH, HEIGHT);
-    drawWeave(
+    drawBraid(
       heightCtx,
-      (warpOnTop, shade) => {
-        const value = Math.round((warpOnTop ? 190 : 96) * shade);
+      (over, shade) => {
+        const value = Math.round((over ? 198 : 108) * shade);
         return `rgb(${value},${value},${value})`;
       },
       1337
     );
-    // Selvedges sit slightly proud of the field.
-    heightCtx.fillStyle = "rgba(255,255,255,0.35)";
-    heightCtx.fillRect(0, 0, CELL, HEIGHT);
-    heightCtx.fillRect(WIDTH - CELL, 0, CELL, HEIGHT);
   }
-  const normalCanvas = heightToNormal(heightCanvas, 1.7);
+  const normalCanvas = heightToNormal(heightCanvas, 1.35);
 
   const roughnessCanvas = createCanvas(WIDTH, HEIGHT);
   const roughnessCtx = roughnessCanvas.getContext("2d");
   if (roughnessCtx) {
     roughnessCtx.drawImage(heightCanvas, 0, 0);
-    // Invert: raised threads catch light, recesses stay matte.
+    // Invert: raised yarns catch light, recesses stay matte.
     roughnessCtx.globalCompositeOperation = "difference";
     roughnessCtx.fillStyle = "#ffffff";
     roughnessCtx.fillRect(0, 0, WIDTH, HEIGHT);
     roughnessCtx.globalCompositeOperation = "source-over";
-    roughnessCtx.fillStyle = "rgba(190,190,190,0.55)";
+    roughnessCtx.fillStyle = "rgba(175,175,175,0.5)";
     roughnessCtx.fillRect(0, 0, WIDTH, HEIGHT);
   }
 

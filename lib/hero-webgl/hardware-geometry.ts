@@ -128,8 +128,9 @@ export function createCrimpGeometry() {
   const top = hardware.crimpTopY;
   const bottom = hardware.swivelTopY;
   const height = top - bottom;
-  const corner = Math.min(0.024, halfWidth * 0.4);
-  const bevel = 0.006;
+  const corner = halfWidth * 0.155;
+  const bevel = hardware.crimpDepth * 0.1;
+  const fillet = height * 0.082;
 
   // Straight-sided sleeve for most of its run, drawn in to the waist only
   // over the bottom third — a barrel rounded all the way up reads as a scoop.
@@ -140,11 +141,16 @@ export function createCrimpGeometry() {
   shape.lineTo(halfWidth - corner, top);
   shape.quadraticCurveTo(halfWidth, top, halfWidth, top - corner);
   shape.lineTo(halfWidth, shoulder);
-  shape.quadraticCurveTo(halfWidth, bottom + 0.012, waist, bottom + 0.01);
-  shape.quadraticCurveTo(waist, bottom, waist - 0.012, bottom);
-  shape.lineTo(-waist + 0.012, bottom);
-  shape.quadraticCurveTo(-waist, bottom, -waist, bottom + 0.01);
-  shape.quadraticCurveTo(-halfWidth, bottom + 0.012, -halfWidth, shoulder);
+  shape.quadraticCurveTo(
+    halfWidth,
+    bottom + fillet,
+    waist,
+    bottom + fillet * 0.83
+  );
+  shape.quadraticCurveTo(waist, bottom, waist - fillet, bottom);
+  shape.lineTo(-waist + fillet, bottom);
+  shape.quadraticCurveTo(-waist, bottom, -waist, bottom + fillet * 0.83);
+  shape.quadraticCurveTo(-halfWidth, bottom + fillet, -halfWidth, shoulder);
   shape.lineTo(-halfWidth, top - corner);
   shape.quadraticCurveTo(-halfWidth, top, -halfWidth + corner, top);
 
@@ -165,17 +171,24 @@ export function createCrimpGeometry() {
   return geometry;
 }
 
+/**
+ * Height the swivel stack has to fill, between the bottom of the barrel and
+ * the top of the claw. Both turned parts are cut as fractions of it so the
+ * whole clasp keeps its proportions at any size.
+ */
+const SWIVEL_SPAN = hardware.swivelTopY - hardware.clawApexY;
+
 /** Turned collar riveted to the barrel — the fixed half of the swivel. */
 export function createSwivelCollarGeometry() {
   const r = hardware.swivelRadius;
-  const top = hardware.swivelTopY + 0.009;
+  const top = hardware.swivelTopY + SWIVEL_SPAN * 0.123;
   const profile = [
     new THREE.Vector2(0, top),
     new THREE.Vector2(r * 0.78, top),
-    new THREE.Vector2(r, top - 0.006),
-    new THREE.Vector2(r, top - 0.015),
-    new THREE.Vector2(r * 0.87, top - 0.02),
-    new THREE.Vector2(0, top - 0.02),
+    new THREE.Vector2(r, top - SWIVEL_SPAN * 0.082),
+    new THREE.Vector2(r, top - SWIVEL_SPAN * 0.205),
+    new THREE.Vector2(r * 0.87, top - SWIVEL_SPAN * 0.274),
+    new THREE.Vector2(0, top - SWIVEL_SPAN * 0.274),
   ];
   return new THREE.LatheGeometry(profile, 28);
 }
@@ -187,19 +200,19 @@ export function createSwivelCollarGeometry() {
 export function createSwivelStemGeometry() {
   const r = hardware.swivelRadius;
   const stem = hardware.stemRadius;
-  const top = hardware.swivelTopY - 0.008;
+  const top = hardware.swivelTopY - SWIVEL_SPAN * 0.11;
   const apex = hardware.clawApexY;
   const profile = [
     new THREE.Vector2(0, top),
     new THREE.Vector2(r * 0.9, top),
-    new THREE.Vector2(r * 0.94, top - 0.007),
-    new THREE.Vector2(stem * 1.12, top - 0.016),
-    new THREE.Vector2(stem, top - 0.026),
-    new THREE.Vector2(stem, apex + 0.026),
-    new THREE.Vector2(stem * 1.28, apex + 0.016),
-    new THREE.Vector2(stem * 1.28, apex - 0.002),
-    new THREE.Vector2(stem * 0.7, apex - 0.009),
-    new THREE.Vector2(0, apex - 0.011),
+    new THREE.Vector2(r * 0.94, top - SWIVEL_SPAN * 0.096),
+    new THREE.Vector2(stem * 1.12, top - SWIVEL_SPAN * 0.219),
+    new THREE.Vector2(stem, top - SWIVEL_SPAN * 0.356),
+    new THREE.Vector2(stem, apex + SWIVEL_SPAN * 0.356),
+    new THREE.Vector2(stem * 1.28, apex + SWIVEL_SPAN * 0.219),
+    new THREE.Vector2(stem * 1.28, apex - SWIVEL_SPAN * 0.027),
+    new THREE.Vector2(stem * 0.7, apex - SWIVEL_SPAN * 0.123),
+    new THREE.Vector2(0, apex - SWIVEL_SPAN * 0.15),
   ];
   return new THREE.LatheGeometry(profile, 28);
 }

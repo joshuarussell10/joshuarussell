@@ -53,8 +53,11 @@ const FACE_OFFSET = card.thickness / 2 + 0.0005;
 const RING_LOCAL_Y = card.height / 2 - card.slot.inset;
 /** Prefer the clasp face toward the camera when the strap plane is ambiguous. */
 const VIEW_AXIS = new THREE.Vector3(0, 0, 1);
-/** Front surface of the barrel, so pressed details sit proud of it. */
-const CRIMP_FACE_Z = hardware.crimpDepth / 2;
+/** Barrel dimensions the pressed details are cut against, so the seam and
+ *  rivets keep their proportions whatever size the clasp is set to. */
+const CRIMP_HEIGHT = hardware.crimpTopY - hardware.swivelTopY;
+const CRIMP_FACE_Z = hardware.crimpDepth * 0.47;
+const PRESSING_DEPTH = hardware.crimpDepth * 0.13;
 
 /** Soft elliptical wall shadow that never clips at the shadow-map frustum. */
 function createSoftShadowTexture() {
@@ -136,23 +139,36 @@ function Clasp({
 
       {/* Pressed seam across the barrel, and the rivets that close it. */}
       <mesh
-        position={[0, hardware.crimpTopY - 0.034, CRIMP_FACE_Z - 0.002]}
+        position={[0, hardware.crimpTopY - CRIMP_HEIGHT * 0.235, CRIMP_FACE_Z]}
         material={metal}
       >
-        <boxGeometry args={[hardware.crimpWidth * 0.7, 0.009, 0.008]} />
+        <boxGeometry
+          args={[
+            hardware.crimpWidth * 0.7,
+            CRIMP_HEIGHT * 0.062,
+            PRESSING_DEPTH,
+          ]}
+        />
       </mesh>
       {[-1, 1].map((side) => (
         <mesh
           key={side}
           position={[
             side * hardware.crimpWidth * 0.24,
-            hardware.crimpTopY - 0.086,
-            CRIMP_FACE_Z - 0.002,
+            hardware.crimpTopY - CRIMP_HEIGHT * 0.59,
+            CRIMP_FACE_Z,
           ]}
           rotation={[Math.PI / 2, 0, 0]}
           material={metal}
         >
-          <cylinderGeometry args={[0.0095, 0.0095, 0.008, 14]} />
+          <cylinderGeometry
+            args={[
+              hardware.crimpWidth * 0.031,
+              hardware.crimpWidth * 0.031,
+              PRESSING_DEPTH,
+              14,
+            ]}
+          />
         </mesh>
       ))}
 
@@ -176,20 +192,25 @@ function Clasp({
             material={metal}
           >
             <cylinderGeometry
-              args={[0.0055, 0.0055, hardware.clawTube * 2.6, 12]}
+              args={[
+                hardware.clawTube * 0.35,
+                hardware.clawTube * 0.35,
+                hardware.clawTube * 2.6,
+                12,
+              ]}
             />
           </mesh>
           <mesh
             position={[
-              CLAW_GATE_HINGE.x - 0.014,
-              CLAW_GATE_HINGE.y + 0.006,
+              CLAW_GATE_HINGE.x - hardware.clawTube * 0.9,
+              CLAW_GATE_HINGE.y + hardware.clawTube * 0.39,
               hardware.clawTube * 0.36,
             ]}
             rotation={[0, 0, -0.6]}
             scale={[1.25, 0.62, 0.4]}
             material={metal}
           >
-            <sphereGeometry args={[0.012, 14, 10]} />
+            <sphereGeometry args={[hardware.clawTube * 0.77, 14, 10]} />
           </mesh>
         </group>
       </group>
@@ -265,13 +286,14 @@ export function LanyardBadgeScene({
     [palette.hardware, hardwareTextures]
   );
 
-  // The barrel is the one part the webbing can reach in a hard pose, so it
-  // keeps a small depth bias as insurance against a strand sorting in front.
+  // The barrel is the one part the cord can reach in a hard pose, so it
+  // keeps a depth bias as insurance against a strand sorting in front.
   const crimpMaterial = useMemo(() => {
     const material = metalMaterial.clone();
     material.polygonOffset = true;
-    material.polygonOffsetFactor = -1;
-    material.polygonOffsetUnits = -1;
+    material.polygonOffsetFactor = -2;
+    material.polygonOffsetUnits = -2;
+    material.depthWrite = true;
     return material;
   }, [metalMaterial]);
 
@@ -280,16 +302,16 @@ export function LanyardBadgeScene({
       map: webbingTextures.map,
       normalMap: webbingTextures.normalMap,
       roughnessMap: webbingTextures.roughnessMap,
-      normalScale: new THREE.Vector2(0.85, 0.85),
-      roughness: 1,
+      normalScale: new THREE.Vector2(0.55, 0.55),
+      roughness: 0.92,
       metalness: 0,
-      sheen: 0.3,
-      sheenRoughness: 0.8,
+      sheen: 0.18,
+      sheenRoughness: 0.7,
       sheenColor: palette.strapPrint,
-      envMapIntensity: 0.35,
+      envMapIntensity: 0.28,
     });
 
-    // Lower strap (near the clasp) uses plain weave so branding never
+    // Lower cord (near the clasp) uses plain braid so branding never
     // compresses or crawls when the rope deforms under the pointer.
     material.onBeforeCompile = (shader) => {
       shader.uniforms.plainMap = { value: webbingTextures.plainMap };
@@ -325,7 +347,7 @@ varying float vPrintMix;`
 #endif`
         );
     };
-    material.customProgramCacheKey = () => "lanyard-webbing-print-mix";
+    material.customProgramCacheKey = () => "lanyard-cord-print-mix";
 
     return material;
   }, [webbingTextures, palette.strapPrint]);
@@ -477,24 +499,17 @@ varying float vPrintMix;`
         }
       }
 
-      // Both strap ends run down into the barrel and stop well inside it,
-      // stacked front to back the way two tape ends really sit in a crimp.
+      // Cord tips stop at the barrel mouth, still in the rope plane. The
+      // barrel itself is shifted forward via crimpFrontBias, so the pressed
+      // face sits clear in front of the braid instead of intersecting it.
       leftBandTip
         .copy(simulation.crimp)
         .addScaledVector(y, hardware.crimpEntryY)
-        .addScaledVector(x, -hardware.crimpEntrySpread)
-        .addScaledVector(
-          z,
-          hardware.crimpFrontBias - hardware.crimpEntryDepth
-        );
+        .addScaledVector(x, -hardware.crimpEntrySpread);
       rightBandTip
         .copy(simulation.crimp)
         .addScaledVector(y, hardware.crimpEntryY)
-        .addScaledVector(x, hardware.crimpEntrySpread)
-        .addScaledVector(
-          z,
-          hardware.crimpFrontBias + hardware.crimpEntryDepth
-        );
+        .addScaledVector(x, hardware.crimpEntrySpread);
     } else {
       leftBandTip.copy(simulation.crimp);
       rightBandTip.copy(simulation.crimp);
@@ -594,11 +609,21 @@ varying float vPrintMix;`
         />
       </mesh>
 
-      <mesh geometry={leftBandGeometry} frustumCulled={false} material={webbingMaterial} />
+      <mesh
+        geometry={leftBandGeometry}
+        frustumCulled={false}
+        material={webbingMaterial}
+        renderOrder={0}
+      />
 
-      <mesh geometry={rightBandGeometry} frustumCulled={false} material={webbingMaterial} />
+      <mesh
+        geometry={rightBandGeometry}
+        frustumCulled={false}
+        material={webbingMaterial}
+        renderOrder={0}
+      />
 
-      <group ref={hardwareRef}>
+      <group ref={hardwareRef} renderOrder={1}>
         <Clasp
           geometries={claspGeometries}
           crimpMetal={crimpMaterial}

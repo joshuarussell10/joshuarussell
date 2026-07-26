@@ -212,6 +212,9 @@ export class LanyardSimulation {
       this.solveCoupling();
       this.solveCrimpFacing();
       this.solveCrimpMouth();
+      // After the crimp corrections — otherwise they reintroduce the bow
+      // this pass is meant to erase.
+      this.solveStrandStraightness();
       this.pin();
     }
   }
@@ -220,6 +223,30 @@ export class LanyardSimulation {
     const invMass = lanyardConfig.physics.ropeInvMass;
     for (let i = 0; i < this.rope.length - 1; i += 1) {
       constrain(this.rope[i], this.rope[i + 1], this.segmentLength, invMass, invMass, 1);
+    }
+  }
+
+  /**
+   * Pull each free rope point toward the straight chord of its strand. Round
+   * cord reads as slack the moment it bows, so this bias keeps the hang taut
+   * without killing pointer-driven swing (stiffness stays well below 1).
+   */
+  private solveStrandStraightness() {
+    const stiffness = lanyardConfig.physics.straightness;
+    if (stiffness <= 0) return;
+
+    const mid = this.midIndex;
+    const crimp = this.rope[mid];
+
+    for (let i = 1; i < mid; i += 1) {
+      const t = i / mid;
+      delta.lerpVectors(this.anchorLeft, crimp, t);
+      this.rope[i].lerp(delta, stiffness);
+    }
+    for (let i = mid + 1; i < this.rope.length - 1; i += 1) {
+      const t = (i - mid) / mid;
+      delta.lerpVectors(crimp, this.anchorRight, t);
+      this.rope[i].lerp(delta, stiffness);
     }
   }
 
