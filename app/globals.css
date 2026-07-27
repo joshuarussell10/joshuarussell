@@ -143,7 +143,7 @@ body {
 }
 
 .hero-bg {
-  background: url("/images/blue-purple-bg.svg") center no-repeat;
+  background: url("/images/blue-purple-bg.svg");
   opacity: 1;
 }
 
