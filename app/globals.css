@@ -144,7 +144,7 @@ body {
 
 .hero-bg {
   background: url("/images/blue-purple-bg.svg") center no-repeat;
-  opacity: 0.85;
+  opacity: 1;
 }
 
 .dark .hero-bg {
