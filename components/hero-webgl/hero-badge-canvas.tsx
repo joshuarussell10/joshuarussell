@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useLayoutEffect, useMemo } from "react";
+import { Suspense, useLayoutEffect, useMemo, useState } from "react";
 import { useTheme } from "next-themes";
 import { Canvas, useThree } from "@react-three/fiber";
 import * as THREE from "three";
@@ -32,12 +32,25 @@ function CameraRig() {
   return null;
 }
 
+/** Fires once the Suspense scene has mounted so the wrapper can fade in. */
+function SceneReady({ onReady }: { onReady: (ready: boolean) => void }) {
+  useLayoutEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      requestAnimationFrame(() => onReady(true));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [onReady]);
+
+  return null;
+}
+
 export function HeroBadgeCanvas({
   mouse,
   interactive,
   pointerActive,
 }: HeroBadgeCanvasProps) {
   const { resolvedTheme } = useTheme();
+  const [ready, setReady] = useState(false);
   const palette =
     resolvedTheme === "light" ? lanyardPalettes.light : lanyardPalettes.dark;
 
@@ -57,7 +70,10 @@ export function HeroBadgeCanvas({
   );
 
   return (
-    <div className="hero-badge-canvas animate-fade-up-delay-1 relative h-full w-full" aria-hidden>
+    <div
+      className={`hero-badge-canvas relative h-full w-full${ready ? " is-ready" : ""}`}
+      aria-hidden
+    >
       <div className="hero-webgl-glow absolute inset-0 scale-125 opacity-60" />
       <Canvas
         camera={{
@@ -78,6 +94,7 @@ export function HeroBadgeCanvas({
       >
         <CameraRig />
         <Suspense fallback={null}>
+          <SceneReady onReady={setReady} />
           <LanyardBadgeScene
             mouse={mouse}
             interactive={interactive}
