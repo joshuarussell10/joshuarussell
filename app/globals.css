@@ -71,7 +71,11 @@ body {
 }
 
 .glass-panel:hover {
-  border-color: color-mix(in oklch, var(--site-border) 100%, var(--site-fg) 20%);
+  border-color: color-mix(
+    in oklch,
+    var(--site-border) 100%,
+    var(--site-fg) 20%
+  );
   background: var(--site-glass-hover);
 }
 
@@ -108,8 +112,7 @@ body {
 }
 
 .hero-fade {
-  background:
-    radial-gradient(
+  background: radial-gradient(
       ellipse 55% 50% at 50% 42%,
       color-mix(in oklch, var(--site-hero-fade) 88%, transparent) 0%,
       color-mix(in oklch, var(--site-hero-fade) 55%, transparent) 42%,
@@ -119,26 +122,33 @@ body {
 }
 
 .hero-webgl-glow {
-  background:
-    radial-gradient(
-      ellipse 70% 55% at 50% 48%,
-      color-mix(in oklch, var(--site-accent) 8%, transparent) 0%,
-      transparent 68%
-    );
+  background: radial-gradient(
+    ellipse 70% 55% at 50% 48%,
+    color-mix(in oklch, var(--site-accent) 8%, transparent) 0%,
+    transparent 68%
+  );
   opacity: 0.75;
 }
 
 .dark .hero-webgl-glow {
-  background:
-    radial-gradient(
-      ellipse 70% 55% at 50% 48%,
-      color-mix(in oklch, var(--site-accent) 14%, transparent) 0%,
-      transparent 65%
-    );
+  background: radial-gradient(
+    ellipse 70% 55% at 50% 48%,
+    color-mix(in oklch, var(--site-accent) 14%, transparent) 0%,
+    transparent 65%
+  );
 }
 
 .hero-editorial {
   isolation: isolate;
+}
+
+.hero-bg {
+  background: url("/images/blue-purple-bg.svg") center no-repeat;
+  opacity: 0.85;
+}
+
+.dark .hero-bg {
+  opacity: 1;
 }
 
 .sr-only {
