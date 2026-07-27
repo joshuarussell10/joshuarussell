@@ -389,7 +389,13 @@ varying float vPrintMix;`
       clawBody: createClawBodyGeometry(),
       clawGate: createClawGateGeometry(),
     }),
-    []
+    [
+      hardware.clawLength,
+      hardware.clawWidth,
+      hardware.clawTube,
+      hardware.gateTube,
+      hardware.clawApexY,
+    ]
   );
 
   useEffect(() => {
