@@ -50,7 +50,19 @@ type LanyardBadgeSceneProps = {
 const { card, webbing, hardware } = lanyardConfig;
 /** The bevelled lid sits at the full half-thickness; print rides just above it. */
 const FACE_OFFSET = card.thickness / 2 + 0.0005;
-const RING_LOCAL_Y = card.height / 2 - card.slot.inset;
+const SLOT_LOCAL_Y = card.height / 2 - card.slot.inset;
+/**
+ * Pitched so the loop hangs in front of the badge while the upper arc goes
+ * through the punch. Keep these as functions so HMR can't leave a stale
+ * centre baked in from an older ringRadius.
+ */
+const RING_TILT = 0.9;
+function ringCenterY() {
+  return SLOT_LOCAL_Y - hardware.ringRadius * Math.cos(RING_TILT);
+}
+function ringCenterZ() {
+  return cardBowAt(0) + hardware.ringRadius * Math.sin(RING_TILT) * 0.85;
+}
 /** Prefer the clasp face toward the camera when the strap plane is ambiguous. */
 const VIEW_AXIS = new THREE.Vector3(0, 0, 1);
 /** Barrel dimensions the pressed details are cut against, so the seam and
@@ -135,48 +147,59 @@ function Clasp({
 }) {
   return (
     <>
-      <mesh geometry={geometries.crimp} material={crimpMetal} />
+      {/*
+        Barrel sits forward of the cord plane so the braid doesn't paint
+        through the pressed face. Stem and claw stay on the hang axis so
+        the snap can chain-link the split ring at the card mid-plane.
+      */}
+      <group position={[0, 0, hardware.crimpFrontBias]}>
+        <mesh geometry={geometries.crimp} material={crimpMetal} />
 
-      {/* Pressed seam across the barrel, and the rivets that close it. */}
-      <mesh
-        position={[0, hardware.crimpTopY - CRIMP_HEIGHT * 0.235, CRIMP_FACE_Z]}
-        material={metal}
-      >
-        <boxGeometry
-          args={[
-            hardware.crimpWidth * 0.7,
-            CRIMP_HEIGHT * 0.062,
-            PRESSING_DEPTH,
-          ]}
-        />
-      </mesh>
-      {[-1, 1].map((side) => (
+        {/* Pressed seam across the barrel, and the rivets that close it. */}
         <mesh
-          key={side}
-          position={[
-            side * hardware.crimpWidth * 0.24,
-            hardware.crimpTopY - CRIMP_HEIGHT * 0.59,
-            CRIMP_FACE_Z,
-          ]}
-          rotation={[Math.PI / 2, 0, 0]}
+          position={[0, hardware.crimpTopY - CRIMP_HEIGHT * 0.235, CRIMP_FACE_Z]}
           material={metal}
         >
-          <cylinderGeometry
+          <boxGeometry
             args={[
-              hardware.crimpWidth * 0.031,
-              hardware.crimpWidth * 0.031,
+              hardware.crimpWidth * 0.7,
+              CRIMP_HEIGHT * 0.062,
               PRESSING_DEPTH,
-              14,
             ]}
           />
         </mesh>
-      ))}
+        {[-1, 1].map((side) => (
+          <mesh
+            key={side}
+            position={[
+              side * hardware.crimpWidth * 0.24,
+              hardware.crimpTopY - CRIMP_HEIGHT * 0.59,
+              CRIMP_FACE_Z,
+            ]}
+            rotation={[Math.PI / 2, 0, 0]}
+            material={metal}
+          >
+            <cylinderGeometry
+              args={[
+                hardware.crimpWidth * 0.031,
+                hardware.crimpWidth * 0.031,
+                PRESSING_DEPTH,
+                14,
+              ]}
+            />
+          </mesh>
+        ))}
 
-      <mesh geometry={geometries.collar} material={metal} />
+        <mesh geometry={geometries.collar} material={metal} />
+      </group>
 
       <group ref={swivelRef}>
         <mesh geometry={geometries.stem} material={metal} />
 
+        {/*
+          Claw stays face-on to the card so it seats visually in the pitched
+          ring's lower arc from the hero camera.
+        */}
         <group position={[0, hardware.clawApexY, 0]}>
           <mesh geometry={geometries.clawBody} material={metal} />
           <mesh
@@ -364,7 +387,11 @@ varying float vPrintMix;`
   const cardBodyGeometry = useMemo(() => createCardBodyGeometry(), []);
   const cardFrontGeometry = useMemo(() => createCardFaceGeometry(1), []);
   const cardBackGeometry = useMemo(() => createCardFaceGeometry(-1), []);
-  const splitRingGeometry = useMemo(() => createSplitRingGeometry(), []);
+  const splitRingGeometry = useMemo(
+    () => createSplitRingGeometry(),
+    // Recreate when the ring is retuned so seating maths and mesh stay matched.
+    [hardware.ringRadius, hardware.ringTube]
+  );
   const leftBandGeometry = useMemo(
     () => createBandGeometry(webbing.segments / 2),
     []
@@ -449,7 +476,9 @@ varying float vPrintMix;`
 
     const hardwareGroup = hardwareRef.current;
     if (hardwareGroup && cardGroup) {
-      ringWorld.set(0, RING_LOCAL_Y, 0).applyMatrix4(cardGroup.matrixWorld);
+      ringWorld
+        .set(0, ringCenterY(), ringCenterZ())
+        .applyMatrix4(cardGroup.matrixWorld);
 
       const leftStrand = simulation.leftStrand;
       const rightStrand = simulation.rightStrand;
@@ -480,9 +509,9 @@ varying float vPrintMix;`
 
       matrix.makeBasis(x, y, z);
       hardwareGroup.quaternion.setFromRotationMatrix(matrix);
-      hardwareGroup.position
-        .copy(simulation.crimp)
-        .addScaledVector(z, hardware.crimpFrontBias);
+      // Hang on the crimp particle — barrel bias is local to the clasp mesh
+      // so the claw stays on the ring's plane instead of sitting in front.
+      hardwareGroup.position.copy(simulation.crimp);
 
       // The swivel: below the joint the clasp turns to face the same way as
       // the card, so the claw and the split ring stay properly interlocked.
@@ -500,7 +529,7 @@ varying float vPrintMix;`
       }
 
       // Cord tips stop at the barrel mouth, still in the rope plane. The
-      // barrel itself is shifted forward via crimpFrontBias, so the pressed
+      // barrel itself is shifted forward in clasp-local space, so the pressed
       // face sits clear in front of the braid instead of intersecting it.
       leftBandTip
         .copy(simulation.crimp)
@@ -704,11 +733,11 @@ varying float vPrintMix;`
           />
         </mesh>
 
-        {/* Split ring riding in the punched slot. */}
+        {/* Split ring: pitched through the punch, loop hanging in front. */}
         <mesh
           geometry={splitRingGeometry}
-          position={[0, RING_LOCAL_Y, cardBowAt(0)]}
-          rotation={[0, Math.PI / 2, 0]}
+          position={[0, ringCenterY(), ringCenterZ()]}
+          rotation={[-RING_TILT, 0, 0]}
           material={metalMaterial}
         />
       </group>

@@ -83,7 +83,7 @@ export const lanyardConfig = {
     /** Keep the pins in the clasp plane so the V reads as straight on screen. */
     anchorZ: 0,
     /** Where the strands meet at rest; sets the overall rope length. */
-    crimpRestY: 0.651,
+    crimpRestY: 0.543,
     /**
      * Round braided polyester cord. ~2.6 mm at the card's 54 mm reference
      * width — a typical badge-string diameter, not a flat tape.
@@ -117,12 +117,12 @@ export const lanyardConfig = {
    */
   hardware: {
     /**
-     * Crimp centre down to the top edge of the card. Derived so the split
-     * ring seats in the throat of the claw:
-     *   -(clawApexY - clawLength - ringRadius + ringTube - clawTube)
-     *   - slot.inset
+     * Crimp centre down to the top edge of the card. Ring centre sits
+     * `ringRadius * cos(tilt)` below the punch; claw throat catches it:
+     *   -(clawApexY - clawLength + ringRadius)
+     *   - slot.inset - ringRadius * cos(tilt)
      */
-    drop: 0.2522,
+    drop: 0.144,
 
     /** Folded sheet-metal tip that clamps both cord ends. */
     crimpWidth: 0.122,
@@ -132,7 +132,7 @@ export const lanyardConfig = {
     /** Top of the barrel in hardware-local space. */
     crimpTopY: 0.04,
     /** Bottom of the barrel, and the top of the swivel stack. */
-    swivelTopY: -0.076,
+    swivelTopY: -0.062,
     /**
      * Cord tips stop just above the barrel lip. Ending outside the metal
      * volume is what stops the braid painting through the pressed face —
@@ -153,18 +153,25 @@ export const lanyardConfig = {
      */
     crimpFrontBias: 0.05,
 
-    swivelRadius: 0.025,
-    stemRadius: 0.0152,
+    swivelRadius: 0.02,
+    stemRadius: 0.012,
 
-    /** Lobster claw, hung off the bottom of the swivel stem. */
-    clawApexY: -0.134,
-    clawLength: 0.152,
-    clawWidth: 0.112,
-    clawTube: 0.0124,
-    gateTube: 0.0068,
+    /**
+     * Lobster claw hung well below the barrel so the body sits under the
+     * card and hooks the lower arc of the split ring — not the punch itself.
+     */
+    clawApexY: -0.218,
+    clawLength: 0.095,
+    clawWidth: 0.072,
+    clawTube: 0.0088,
+    gateTube: 0.0048,
 
-    ringRadius: 0.05,
-    ringTube: 0.0112,
+    /**
+     * Sized so the upper arc fills the punch clearly while the lower half
+     * still clears below the card for the claw.
+     */
+    ringRadius: 0.052,
+    ringTube: 0.01,
   },
   physics: {
     /**

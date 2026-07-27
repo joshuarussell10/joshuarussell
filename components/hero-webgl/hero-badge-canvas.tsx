@@ -22,8 +22,10 @@ function CameraRig() {
   const size = useThree((state) => state.size);
 
   useLayoutEffect(() => {
-    const [x, y, z] = lanyardConfig.camera.lookAt;
-    camera.lookAt(x, y, z);
+    const [px, py, pz] = lanyardConfig.camera.position;
+    const [lx, ly, lz] = lanyardConfig.camera.lookAt;
+    camera.position.set(px, py, pz);
+    camera.lookAt(lx, ly, lz);
     camera.updateProjectionMatrix();
   }, [camera, size.width, size.height]);
 
