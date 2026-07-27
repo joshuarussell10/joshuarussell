@@ -248,7 +248,40 @@ function drawQrCode(
   ctx.restore();
 }
 
-/** Head-and-shoulders portrait stand-in, softened so it reads photographic. */
+/**
+ * Standard filled user glyph (head + shoulders), in a 24×24 viewBox —
+ * the same mark UI kits use for empty avatars.
+ */
+function drawUserGlyph(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  size: number
+) {
+  const s = size / 24;
+  ctx.save();
+  ctx.translate(cx - size / 2, cy - size / 2);
+  ctx.scale(s, s);
+
+  // Head.
+  ctx.beginPath();
+  ctx.arc(12, 8, 4.25, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Shoulders / torso — rounded top, clipped by the photo frame below.
+  ctx.beginPath();
+  ctx.moveTo(4, 21.5);
+  ctx.lineTo(4, 19.25);
+  ctx.bezierCurveTo(4, 16.35, 7.15, 14.25, 12, 14.25);
+  ctx.bezierCurveTo(16.85, 14.25, 20, 16.35, 20, 19.25);
+  ctx.lineTo(20, 21.5);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/** Printed portrait window with a clean standard profile mark. */
 function drawPortrait(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -267,71 +300,32 @@ function drawPortrait(
   ctx.fillStyle = backdrop;
   ctx.fillRect(x, y, width, height);
 
-  // Studio falloff behind the subject.
+  // Soft studio falloff behind the mark.
   const spot = ctx.createRadialGradient(
     x + width * 0.5,
-    y + height * 0.34,
-    width * 0.08,
+    y + height * 0.36,
+    width * 0.06,
     x + width * 0.5,
     y + height * 0.5,
-    width * 0.95
+    width * 0.85
   );
-  spot.addColorStop(0, "rgba(255,255,255,0.16)");
-  spot.addColorStop(1, "rgba(0,0,0,0.24)");
+  spot.addColorStop(0, "rgba(255,255,255,0.14)");
+  spot.addColorStop(1, "rgba(0,0,0,0.18)");
   ctx.fillStyle = spot;
   ctx.fillRect(x, y, width, height);
 
   const cx = x + width * 0.5;
-  const headRadius = width * 0.203;
-  const headCy = y + height * 0.365;
-
-  try {
-    ctx.filter = `blur(${Math.round(width * 0.012)}px)`;
-  } catch {
-    /* Canvas filters unsupported — the silhouette just stays crisp. */
-  }
+  const cy = y + height * 0.55;
+  const glyphSize = width * 1.02;
 
   ctx.fillStyle = palette.photoFigure;
+  drawUserGlyph(ctx, cx, cy, glyphSize);
 
-  // Shoulders.
-  ctx.beginPath();
-  ctx.moveTo(x - width * 0.05, y + height * 1.02);
-  ctx.bezierCurveTo(
-    x + width * 0.1,
-    y + height * 0.72,
-    x + width * 0.3,
-    y + height * 0.62,
-    cx,
-    y + height * 0.62
-  );
-  ctx.bezierCurveTo(
-    x + width * 0.7,
-    y + height * 0.62,
-    x + width * 0.9,
-    y + height * 0.72,
-    x + width * 1.05,
-    y + height * 1.02
-  );
-  ctx.closePath();
-  ctx.fill();
-
-  // Neck.
-  ctx.beginPath();
-  ctx.ellipse(cx, y + height * 0.6, width * 0.1, height * 0.08, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Head.
-  ctx.beginPath();
-  ctx.ellipse(cx, headCy, headRadius, headRadius * 1.2, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.filter = "none";
-
-  // Key light on the subject's left, matching the scene's key direction.
-  const rim = ctx.createLinearGradient(cx - headRadius, 0, cx + headRadius, 0);
-  rim.addColorStop(0, "rgba(255,255,255,0.13)");
-  rim.addColorStop(0.55, "rgba(255,255,255,0)");
-  rim.addColorStop(1, "rgba(0,0,0,0.16)");
+  // Gentle side key so the mark sits in the same light as the rest of the card.
+  const rim = ctx.createLinearGradient(x + width * 0.15, 0, x + width * 0.85, 0);
+  rim.addColorStop(0, "rgba(255,255,255,0.1)");
+  rim.addColorStop(0.5, "rgba(255,255,255,0)");
+  rim.addColorStop(1, "rgba(0,0,0,0.12)");
   ctx.fillStyle = rim;
   ctx.fillRect(x, y, width, height);
 
