@@ -170,13 +170,7 @@ body {
 }
 
 .hero-split {
-  min-height: min(70vh, 720px);
-}
-
-@media (max-width: 1023px) {
-  .hero-split {
-    min-height: 0;
-  }
+  min-height: 0;
 }
 
 .hero-badge-canvas canvas {

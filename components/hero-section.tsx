@@ -45,7 +45,7 @@ export function HeroSection() {
 
   return (
     <section
-      className="hero-editorial relative flex min-h-screen flex-col justify-center overflow-hidden pt-20"
+      className="hero-editorial relative flex min-h-screen flex-col justify-start overflow-hidden pt-36 md:pt-40 lg:pt-44"
       onPointerEnter={onPointerEnter}
       onPointerMove={onPointerMove}
       onPointerLeave={onPointerLeave}
@@ -62,10 +62,10 @@ export function HeroSection() {
         </div>
       ) : null}
 
-      <div className="section-container relative z-10 py-12 md:py-16 lg:py-20">
-        <div className="hero-split grid grid-cols-1 items-center lg:grid-cols-2 lg:gap-12 xl:gap-16">
+      <div className="section-container relative z-10 py-6 md:py-8 lg:py-10">
+        <div className="hero-split grid grid-cols-1 items-start lg:grid-cols-2 lg:gap-12 xl:gap-16">
           <div className="hero-copy flex flex-col items-center text-center lg:items-start lg:text-left">
-            <h1 className="animate-fade-up mb-4 text-5xl font-semibold tracking-tight md:text-6xl lg:text-7xl xl:text-8xl">
+            <h1 className="animate-fade-up mb-4 whitespace-nowrap text-4xl font-semibold tracking-tight md:text-5xl lg:text-6xl xl:text-7xl">
               <span className="gradient-text">{siteConfig.name}</span>
             </h1>
 
