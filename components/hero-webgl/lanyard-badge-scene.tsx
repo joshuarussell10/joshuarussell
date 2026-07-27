@@ -24,7 +24,6 @@ import {
   createClawBodyGeometry,
   createClawGateGeometry,
   createCrimpGeometry,
-  createSplitRingGeometry,
   createSwivelCollarGeometry,
   createSwivelStemGeometry,
 } from "@/lib/hero-webgl/hardware-geometry";
@@ -50,19 +49,8 @@ type LanyardBadgeSceneProps = {
 const { card, webbing, hardware } = lanyardConfig;
 /** The bevelled lid sits at the full half-thickness; print rides just above it. */
 const FACE_OFFSET = card.thickness / 2 + 0.0005;
+/** Punch centre — the claw hooks through this opening directly. */
 const SLOT_LOCAL_Y = card.height / 2 - card.slot.inset;
-/**
- * Pitched so the loop hangs in front of the badge while the upper arc goes
- * through the punch. Keep these as functions so HMR can't leave a stale
- * centre baked in from an older ringRadius.
- */
-const RING_TILT = 0.9;
-function ringCenterY() {
-  return SLOT_LOCAL_Y - hardware.ringRadius * Math.cos(RING_TILT);
-}
-function ringCenterZ() {
-  return cardBowAt(0) + hardware.ringRadius * Math.sin(RING_TILT) * 0.85;
-}
 /** Prefer the clasp face toward the camera when the strap plane is ambiguous. */
 const VIEW_AXIS = new THREE.Vector3(0, 0, 1);
 /** Barrel dimensions the pressed details are cut against, so the seam and
@@ -131,8 +119,8 @@ type ClaspGeometries = {
 /**
  * Crimp barrel, swivel and lobster claw. Everything below `swivelRef` turns
  * with the card while the barrel stays square to the webbing, which is the
- * whole point of a swivel and stops the claw shearing through the split ring
- * as the badge yaws.
+ * whole point of a swivel and stops the claw shearing through the punch as
+ * the badge yaws.
  */
 function Clasp({
   geometries,
@@ -150,7 +138,7 @@ function Clasp({
       {/*
         Barrel sits forward of the cord plane so the braid doesn't paint
         through the pressed face. Stem and claw stay on the hang axis so
-        the snap can chain-link the split ring at the card mid-plane.
+        the snap can seat in the card punch at the mid-plane.
       */}
       <group position={[0, 0, hardware.crimpFrontBias]}>
         <mesh geometry={geometries.crimp} material={crimpMetal} />
@@ -196,11 +184,8 @@ function Clasp({
       <group ref={swivelRef}>
         <mesh geometry={geometries.stem} material={metal} />
 
-        {/*
-          Claw stays face-on to the card so it seats visually in the pitched
-          ring's lower arc from the hero camera.
-        */}
-        <group position={[0, hardware.clawApexY, 0]}>
+        {/* Lobster claw: edge-on through the punch so its profile reads. */}
+        <group position={[0, hardware.clawApexY, 0]} rotation={[0, Math.PI / 2, 0]}>
           <mesh geometry={geometries.clawBody} material={metal} />
           <mesh
             geometry={geometries.clawGate}
@@ -387,11 +372,6 @@ varying float vPrintMix;`
   const cardBodyGeometry = useMemo(() => createCardBodyGeometry(), []);
   const cardFrontGeometry = useMemo(() => createCardFaceGeometry(1), []);
   const cardBackGeometry = useMemo(() => createCardFaceGeometry(-1), []);
-  const splitRingGeometry = useMemo(
-    () => createSplitRingGeometry(),
-    // Recreate when the ring is retuned so seating maths and mesh stay matched.
-    [hardware.ringRadius, hardware.ringTube]
-  );
   const leftBandGeometry = useMemo(
     () => createBandGeometry(webbing.segments / 2),
     []
@@ -417,7 +397,6 @@ varying float vPrintMix;`
       cardBodyGeometry.dispose();
       cardFrontGeometry.dispose();
       cardBackGeometry.dispose();
-      splitRingGeometry.dispose();
       leftBandGeometry.dispose();
       rightBandGeometry.dispose();
       for (const geometry of Object.values(claspGeometries)) {
@@ -428,13 +407,12 @@ varying float vPrintMix;`
     cardBodyGeometry,
     cardFrontGeometry,
     cardBackGeometry,
-    splitRingGeometry,
     leftBandGeometry,
     rightBandGeometry,
     claspGeometries,
   ]);
 
-  const ringWorld = useMemo(() => new THREE.Vector3(), []);
+  const slotWorld = useMemo(() => new THREE.Vector3(), []);
   const leftBandTip = useMemo(() => new THREE.Vector3(), []);
   const rightBandTip = useMemo(() => new THREE.Vector3(), []);
   const strapLeft = useMemo(() => new THREE.Vector3(), []);
@@ -476,8 +454,8 @@ varying float vPrintMix;`
 
     const hardwareGroup = hardwareRef.current;
     if (hardwareGroup && cardGroup) {
-      ringWorld
-        .set(0, ringCenterY(), ringCenterZ())
+      slotWorld
+        .set(0, SLOT_LOCAL_Y, cardBowAt(0))
         .applyMatrix4(cardGroup.matrixWorld);
 
       const leftStrand = simulation.leftStrand;
@@ -486,8 +464,8 @@ varying float vPrintMix;`
       strapRight.copy(rightStrand[rightStrand.length - 2]).sub(simulation.crimp);
 
       const { x, y, z, matrix } = hardwareBasis;
-      // Hang axis: crimp above the ring, stem and claw reach down toward it.
-      y.copy(simulation.crimp).sub(ringWorld).normalize();
+      // Hang axis: crimp above the punch, stem and claw reach down into it.
+      y.copy(simulation.crimp).sub(slotWorld).normalize();
 
       // Barrel faces with the webbing V — same plane the straps approach in —
       // rather than the card, so a yawed badge can't tuck the metal behind the
@@ -510,11 +488,11 @@ varying float vPrintMix;`
       matrix.makeBasis(x, y, z);
       hardwareGroup.quaternion.setFromRotationMatrix(matrix);
       // Hang on the crimp particle — barrel bias is local to the clasp mesh
-      // so the claw stays on the ring's plane instead of sitting in front.
+      // so the claw stays on the punch plane instead of sitting in front.
       hardwareGroup.position.copy(simulation.crimp);
 
       // The swivel: below the joint the clasp turns to face the same way as
-      // the card, so the claw and the split ring stay properly interlocked.
+      // the card, so the claw stays square to the punched slot.
       const swivelGroup = swivelRef.current;
       if (swivelGroup) {
         cardForward.set(0, 0, 1).applyQuaternion(simulation.cardQuaternion);
@@ -732,14 +710,6 @@ varying float vPrintMix;`
             envMapIntensity={0.9}
           />
         </mesh>
-
-        {/* Split ring: pitched through the punch, loop hanging in front. */}
-        <mesh
-          geometry={splitRingGeometry}
-          position={[0, ringCenterY(), ringCenterZ()]}
-          rotation={[-RING_TILT, 0, 0]}
-          material={metalMaterial}
-        />
       </group>
     </>
   );

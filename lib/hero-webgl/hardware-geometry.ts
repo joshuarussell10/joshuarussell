@@ -278,37 +278,3 @@ export function createClawGateGeometry() {
 
   return createSweptWire(curve, () => tube, 28, 8, 3);
 }
-
-/**
- * Wire wound just over two turns, so the coils sit side by side and the cut
- * ends taper — the detail that separates a split ring from a plain torus.
- */
-export function createSplitRingGeometry() {
-  const radius = hardware.ringRadius;
-  const tube = hardware.ringTube;
-  const turns = 2.04;
-  const pitch = tube * 1.04;
-  const samples = 128;
-
-  const points: THREE.Vector3[] = [];
-  for (let i = 0; i <= samples; i += 1) {
-    const t = i / samples;
-    const angle = Math.PI * 2 * turns * t;
-    points.push(
-      new THREE.Vector3(
-        Math.cos(angle) * radius,
-        Math.sin(angle) * radius,
-        (t - 0.5) * pitch
-      )
-    );
-  }
-
-  const curve = new THREE.CatmullRomCurve3(points, false, "centripetal", 0.5);
-  return createSweptWire(
-    curve,
-    (t) => tube * (0.58 + 0.42 * Math.min(1, Math.min(t, 1 - t) * 16)),
-    176,
-    9,
-    3
-  );
-}

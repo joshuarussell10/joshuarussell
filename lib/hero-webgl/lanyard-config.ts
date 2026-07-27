@@ -83,7 +83,7 @@ export const lanyardConfig = {
     /** Keep the pins in the clasp plane so the V reads as straight on screen. */
     anchorZ: 0,
     /** Where the strands meet at rest; sets the overall rope length. */
-    crimpRestY: 0.543,
+    crimpRestY: 0.537,
     /**
      * Round braided polyester cord. ~2.6 mm at the card's 54 mm reference
      * width — a typical badge-string diameter, not a flat tape.
@@ -112,17 +112,16 @@ export const lanyardConfig = {
   /**
    * The clasp is measured downward from the crimp centre, which sits at the
    * rope's junction particle. Each stage hands its lower edge to the next, so
-   * the barrel, swivel, claw and split ring stay a single assembly whichever
-   * dimension is retuned.
+   * the barrel, swivel and claw stay a single assembly whichever dimension
+   * is retuned.
    */
   hardware: {
     /**
-     * Crimp centre down to the top edge of the card. Ring centre sits
-     * `ringRadius * cos(tilt)` below the punch; claw throat catches it:
-     *   -(clawApexY - clawLength + ringRadius)
-     *   - slot.inset - ringRadius * cos(tilt)
+     * Crimp centre down to the top edge of the card. The claw throat seats
+     * on the punch:
+     *   -(clawApexY - clawLength * 0.68) - slot.inset
      */
-    drop: 0.144,
+    drop: 0.138,
 
     /** Folded sheet-metal tip that clamps both cord ends. */
     crimpWidth: 0.122,
@@ -156,22 +155,12 @@ export const lanyardConfig = {
     swivelRadius: 0.02,
     stemRadius: 0.012,
 
-    /**
-     * Lobster claw hung well below the barrel so the body sits under the
-     * card and hooks the lower arc of the split ring — not the punch itself.
-     */
-    clawApexY: -0.218,
-    clawLength: 0.095,
+    /** Lobster claw, hooked through the card's punched slot. */
+    clawApexY: -0.155,
+    clawLength: 0.1,
     clawWidth: 0.072,
     clawTube: 0.0088,
     gateTube: 0.0048,
-
-    /**
-     * Sized so the upper arc fills the punch clearly while the lower half
-     * still clears below the card for the claw.
-     */
-    ringRadius: 0.052,
-    ringTube: 0.01,
   },
   physics: {
     /**
