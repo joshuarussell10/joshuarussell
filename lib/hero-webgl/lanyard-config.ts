@@ -83,7 +83,7 @@ export const lanyardConfig = {
     /** Keep the pins in the clasp plane so the V reads as straight on screen. */
     anchorZ: 0,
     /** Where the strands meet at rest; sets the overall rope length. */
-    crimpRestY: 0.537,
+    crimpRestY: 0.573,
     /**
      * Round braided polyester cord. ~2.6 mm at the card's 54 mm reference
      * width — a typical badge-string diameter, not a flat tape.
@@ -121,7 +121,7 @@ export const lanyardConfig = {
      * on the punch:
      *   -(clawApexY - clawLength * 0.68) - slot.inset
      */
-    drop: 0.138,
+    drop: 0.174,
 
     /** Folded sheet-metal tip that clamps both cord ends. */
     crimpWidth: 0.122,
