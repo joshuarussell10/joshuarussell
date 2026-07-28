@@ -7,6 +7,16 @@ import { Button } from "@heroui/react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { navLinks, siteConfig } from "@/lib/data";
 
+function getHashId(href: string) {
+  const hashIndex = href.indexOf("#");
+  if (hashIndex === -1) return null;
+  return href.slice(hashIndex + 1) || null;
+}
+
+function scrollToSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+}
+
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -23,6 +33,34 @@ export function Navbar() {
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
+
+  // After navigating to /#section from another page, scroll once the home page is ready
+  useEffect(() => {
+    if (pathname !== "/") return;
+
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+
+    const frame = requestAnimationFrame(() => scrollToSection(hash));
+    return () => cancelAnimationFrame(frame);
+  }, [pathname]);
+
+  function navigateTo(href: string) {
+    setMenuOpen(false);
+
+    const id = getHashId(href);
+    if (id) {
+      if (pathname === "/") {
+        window.history.pushState(null, "", `#${id}`);
+        scrollToSection(id);
+      } else {
+        router.push(`/#${id}`);
+      }
+      return;
+    }
+
+    router.push(href);
+  }
 
   return (
     <header
@@ -43,7 +81,7 @@ export function Navbar() {
               key={link.href}
               variant="secondary"
               size="sm"
-              href={link.href}
+              onPress={() => navigateTo(link.href)}
             >
               {link.label}
             </Button>
@@ -90,14 +128,14 @@ export function Navbar() {
         <div className="border-site border-t bg-mobile-menu px-6 py-4 backdrop-blur-xl md:hidden">
           <div className="flex flex-col gap-4">
             {navLinks.map((link) => (
-              <Link
+              <button
                 key={link.href}
-                href={link.href}
-                className="nav-link text-sm"
-                onClick={() => setMenuOpen(false)}
+                type="button"
+                className="nav-link text-left text-sm"
+                onClick={() => navigateTo(link.href)}
               >
                 {link.label}
-              </Link>
+              </button>
             ))}
             <Button
               variant="primary"
