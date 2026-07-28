@@ -58,7 +58,7 @@ export function HeroSection() {
 
       {/* Full-height absolute canvas — out of flow, anchored to the viewport top */}
       {showBadge ? (
-        <div className="hero-visual pointer-events-none absolute inset-y-0 right-12 z-[1] hidden w-[min(54%,700px)] lg:block xl:right-16">
+        <div className="hero-visual pointer-events-none absolute inset-y-0 right-[5.5rem] z-[1] hidden w-[min(54%,700px)] lg:block xl:right-[6.5rem]">
           <HeroBadgeCanvas
             mouse={mouse}
             interactive={interactive}
@@ -67,7 +67,7 @@ export function HeroSection() {
         </div>
       ) : null}
 
-      <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center overflow-visible pt-28 md:pt-32">
+      <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center overflow-visible ">
         <div className="relative flex w-full max-w-7xl flex-col items-center px-6 md:px-8 lg:flex-row">
           <div className="w-full lg:w-3/5 lg:pr-0 lg:pl-12">
             <h1
@@ -78,8 +78,8 @@ export function HeroSection() {
               </span>
             </h1>
 
-            <div className="animate-fade-up-delay-1 mt-4 w-full">
-              <RoleRotator className="mx-auto mb-5 lg:mx-0" />
+            <div className="animate-fade-up-delay-1 w-full ml-0">
+              <RoleRotator className="mx-auto lg:mx-0" />
             </div>
 
             <p className="animate-fade-up-delay-2 mt-2 max-w-xl text-center text-lg text-site-muted md:text-xl lg:text-left">

@@ -8,7 +8,10 @@ type RoleRotatorProps = {
   onRoleChange?: () => void;
 };
 
-export function RoleRotator({ className = "", onRoleChange }: RoleRotatorProps) {
+export function RoleRotator({
+  className = "",
+  onRoleChange,
+}: RoleRotatorProps) {
   const onRoleChangeRef = useRef(onRoleChange);
   onRoleChangeRef.current = onRoleChange;
   const [index, setIndex] = useState(0);
@@ -33,7 +36,7 @@ export function RoleRotator({ className = "", onRoleChange }: RoleRotatorProps) 
         setVisible(true);
         onRoleChangeRef.current?.();
       }, 280);
-    }, 3000);
+    }, 8000);
 
     return () => window.clearInterval(interval);
   }, [reducedMotion]);
