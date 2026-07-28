@@ -32,16 +32,21 @@ export function Navbar() {
           : "bg-transparent"
       }`}
     >
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 md:px-8">
+      <nav className="mx-auto flex h-[84px] max-w-6xl items-center justify-between px-6 md:px-8">
         <Link href="/" className="nav-logo font-mono text-sm tracking-tight">
           {siteConfig.domain}
         </Link>
 
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
           {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="nav-link text-sm">
+            <Button
+              key={link.href}
+              variant="secondary"
+              size="sm"
+              href={link.href}
+            >
               {link.label}
-            </Link>
+            </Button>
           ))}
           <ThemeToggle />
           <Button
@@ -63,13 +68,19 @@ export function Navbar() {
             onClick={() => setMenuOpen((open) => !open)}
           >
             <span
-              className={`nav-menu-line block h-0.5 w-6 transition ${menuOpen ? "translate-y-2 rotate-45" : ""}`}
+              className={`nav-menu-line block h-0.5 w-6 transition ${
+                menuOpen ? "translate-y-2 rotate-45" : ""
+              }`}
             />
             <span
-              className={`nav-menu-line block h-0.5 w-6 transition ${menuOpen ? "opacity-0" : ""}`}
+              className={`nav-menu-line block h-0.5 w-6 transition ${
+                menuOpen ? "opacity-0" : ""
+              }`}
             />
             <span
-              className={`nav-menu-line block h-0.5 w-6 transition ${menuOpen ? "-translate-y-2 -rotate-45" : ""}`}
+              className={`nav-menu-line block h-0.5 w-6 transition ${
+                menuOpen ? "-translate-y-2 -rotate-45" : ""
+              }`}
             />
           </button>
         </div>
