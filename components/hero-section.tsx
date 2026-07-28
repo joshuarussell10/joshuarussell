@@ -7,6 +7,7 @@ import { Button } from "@heroui/react";
 import { useHeroInteraction } from "@/components/hero-webgl/use-hero-interaction";
 import { RoleRotator } from "@/components/role-rotator";
 import { heroTagline, siteConfig } from "@/lib/data";
+import { inter } from "@/lib/fonts";
 
 const HeroBadgeCanvas = dynamic(
   () =>
@@ -45,13 +46,17 @@ export function HeroSection() {
 
   return (
     <section
-      className="hero-editorial relative flex min-h-screen flex-col justify-start overflow-hidden pt-36 md:pt-40 lg:pt-44"
+      className="hero-editorial relative flex min-h-screen flex-col overflow-hidden"
       onPointerEnter={onPointerEnter}
       onPointerMove={onPointerMove}
       onPointerLeave={onPointerLeave}
     >
-      <div className="hero-bg pointer-events-none absolute inset-0 z-0" aria-hidden />
+      <div
+        className="hero-bg pointer-events-none absolute inset-0 z-0"
+        aria-hidden
+      />
 
+      {/* Full-height absolute canvas — out of flow, anchored to the viewport top */}
       {showBadge ? (
         <div className="hero-visual pointer-events-none absolute inset-y-0 right-12 z-[1] hidden w-[min(54%,700px)] lg:block xl:right-16">
           <HeroBadgeCanvas
@@ -62,22 +67,26 @@ export function HeroSection() {
         </div>
       ) : null}
 
-      <div className="section-container relative z-10 py-6 md:py-8 lg:py-10">
-        <div className="hero-split grid grid-cols-1 items-start lg:grid-cols-2 lg:gap-12 xl:gap-16">
-          <div className="hero-copy flex flex-col items-center text-center lg:items-start lg:text-left">
-            <h1 className="animate-fade-up mb-4 whitespace-nowrap text-4xl font-semibold tracking-tight md:text-5xl lg:text-6xl xl:text-7xl">
-              <span className="gradient-text">{siteConfig.name}</span>
+      <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center overflow-visible pt-28 md:pt-32">
+        <div className="relative flex w-full max-w-7xl flex-col items-center px-6 md:px-8 lg:flex-row">
+          <div className="w-full lg:w-3/5 lg:pr-0 lg:pl-12">
+            <h1
+              className={`${inter.className} animate-fade-up text-center tracking-tighter lg:text-left`}
+            >
+              <span className="bg-gradient-text block bg-[length:150%_100%] bg-clip-text bg-no-repeat text-5xl leading-tight font-semibold tracking-tighter text-transparent md:text-7xl">
+                {siteConfig.name}
+              </span>
             </h1>
 
-            <div className="animate-fade-up-delay-1 w-full">
+            <div className="animate-fade-up-delay-1 mt-4 w-full">
               <RoleRotator className="mx-auto mb-5 lg:mx-0" />
             </div>
 
-            <p className="animate-fade-up-delay-2 mb-8 max-w-xl text-lg text-site-muted md:text-xl">
+            <p className="animate-fade-up-delay-2 mt-2 max-w-xl text-center text-lg text-site-muted md:text-xl lg:text-left">
               {heroTagline}
             </p>
 
-            <div className="animate-fade-up-delay-3 flex w-full flex-wrap justify-center gap-4 lg:justify-start">
+            <div className="animate-fade-up-delay-3 mt-8 flex w-full flex-wrap justify-center gap-4 lg:justify-start">
               <Button
                 variant="primary"
                 size="lg"
@@ -100,9 +109,6 @@ export function HeroSection() {
               </Button>
             </div>
           </div>
-
-          {/* Reserve the right column so copy stays left-weighted next to the badge. */}
-          {showBadge ? <div className="hidden lg:block" aria-hidden /> : null}
         </div>
       </div>
 

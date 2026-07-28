@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@config "../tailwind.config.js";
 @import "@heroui/styles";
 
 @theme {
@@ -21,9 +22,6 @@
   --site-grid-line: oklch(0 0 0 / 0.06);
   --site-hero-fade: oklch(0.96 0.008 260);
   --site-selection: oklch(0.55 0.2 260 / 0.25);
-  --site-gradient-1: oklch(0.35 0.14 260);
-  --site-gradient-2: oklch(0.42 0.18 290);
-  --site-gradient-3: oklch(0.38 0.14 200);
 }
 
 .dark {
@@ -41,9 +39,6 @@
   --site-grid-line: oklch(1 0 0 / 0.03);
   --site-hero-fade: oklch(0.12 0.02 260);
   --site-selection: oklch(0.55 0.2 260 / 0.4);
-  --site-gradient-1: oklch(0.85 0.12 260);
-  --site-gradient-2: oklch(0.7 0.18 290);
-  --site-gradient-3: oklch(0.75 0.15 200);
 }
 
 html {
@@ -248,18 +243,6 @@ body {
     opacity: 0;
     transform: translateY(-12px);
   }
-}
-
-.gradient-text {
-  background: linear-gradient(
-    135deg,
-    var(--site-gradient-1) 0%,
-    var(--site-gradient-2) 50%,
-    var(--site-gradient-3) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
 
 .nav-link {
