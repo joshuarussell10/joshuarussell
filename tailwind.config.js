@@ -8,6 +8,7 @@ const config = {
   theme: {
     extend: {
       backgroundImage: {
+        "grid-bg": 'url("/backgrounds/grid.svg")',
         "gradient-text":
           "linear-gradient(45deg, #a163f1, #6363f1 22%,rgb(89, 177, 254) 40%, #40dfa3 67%, rgba(64, 223, 163, 0))",
       },

@@ -55,6 +55,10 @@ export function HeroSection() {
         className="hero-bg pointer-events-none absolute inset-0 z-0"
         aria-hidden
       />
+      <div
+        className="bg-grid-bg pointer-events-none absolute inset-0 z-0"
+        aria-hidden
+      />
 
       {/* Full-height absolute canvas — out of flow, anchored to the viewport top */}
       {showBadge ? (
