@@ -78,7 +78,7 @@ export function HeroOrbsCanvas() {
 
       void main() {
         float dist = length(vUV);
-        float alpha = smoothstep(1.0, 0.65, dist) * 0.85;
+        float alpha = smoothstep(1.0, 0.65, dist) * 0.25;
         float pulse = sin(time * 2.0) * 0.1 + 0.9;
         alpha *= pulse * edgeFade;
         float radialGradient = clamp(1.0 - (dist * 0.12), 0.88, 1.0);

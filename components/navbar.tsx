@@ -70,7 +70,7 @@ export function Navbar() {
           : "bg-transparent"
       }`}
     >
-      <nav className="mx-auto flex h-[84px] max-w-7xl items-center justify-between px-6 md:px-8">
+      <nav className="mx-auto flex h-[84px] max-w-6xl items-center justify-between px-6 md:px-8">
         <Link
           href="/"
           className="nav-logo inline-flex shrink-0 items-center"
@@ -79,9 +79,9 @@ export function Navbar() {
           <img
             src="/images/jr-logo.svg"
             alt=""
-            width={56}
-            height={56}
-            className="h-14 w-14"
+            width={432}
+            height={50}
+            className="nav-logo-img h-9 w-auto md:h-10"
             decoding="async"
           />
         </Link>
