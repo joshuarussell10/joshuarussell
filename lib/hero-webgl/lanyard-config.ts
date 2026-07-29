@@ -207,9 +207,9 @@ export const lanyardConfig = {
 
 export const lanyardPalettes = {
   dark: {
-    strap: "#3730a3",
-    strapPrint: "#c7d2fe",
-    strapEdge: "#1e1b4b",
+    strap: "#0047a8",
+    strapPrint: "#c1daf9",
+    strapEdge: "#002561",
     hardware: "#b9bec9",
     cardCore: "#0a0a0a",
     cardBackground: "#000000",
@@ -230,9 +230,9 @@ export const lanyardPalettes = {
     environment: "#171922",
   },
   light: {
-    strap: "#4338ca",
-    strapPrint: "#dfe3ff",
-    strapEdge: "#312e81",
+    strap: "#0047a8",
+    strapPrint: "#d3e7ff",
+    strapEdge: "#002d66",
     hardware: "#aeb4c0",
     cardCore: "#ffffff",
     cardBackground: "#f7f8fc",

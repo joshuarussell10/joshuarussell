@@ -569,7 +569,7 @@ varying float vPrintMix;`
         />
         <Lightformer
           intensity={1.2}
-          color="#cfd8ff"
+          color="#c1daf9"
           position={[-4, 0.4, 2.2]}
           scale={[3, 5, 1]}
           target={[0, 0, 0]}
@@ -602,8 +602,8 @@ varying float vPrintMix;`
       <hemisphereLight intensity={0.16} groundColor="#1a1c28" />
 
       <directionalLight position={[1.8, 4.2, 5.8]} intensity={2.4} />
-      <directionalLight position={[-3.4, 1.2, 2.6]} intensity={0.5} color="#c7d2fe" />
-      <directionalLight position={[-1.2, 0.4, -4]} intensity={0.85} color="#8fa2ff" />
+      <directionalLight position={[-3.4, 1.2, 2.6]} intensity={0.5} color="#bfdbfe" />
+      <directionalLight position={[-1.2, 0.4, -4]} intensity={0.85} color="#60a5fa" />
 
       {/* Painted contact shadow — stays inside the frame and tracks the badge. */}
       <mesh

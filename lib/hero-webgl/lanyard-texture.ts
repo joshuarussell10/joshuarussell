@@ -296,7 +296,13 @@ export function createWebbingTextures(
   brand: string,
   fonts: FontStacks
 ): WebbingTextureSet {
-  const base = new THREE.Color(baseColor);
+  // Parse as sRGB bytes for canvas painting. THREE.Color stores linear, so
+  // multiplying its channels and writing them as rgb() would double-encode
+  // and push blues toward a dark purple under ACES.
+  const baseHex = Number.parseInt(baseColor.replace("#", ""), 16);
+  const baseR = (baseHex >> 16) & 255;
+  const baseG = (baseHex >> 8) & 255;
+  const baseB = baseHex & 255;
 
   const paintBraid = (ctx: CanvasRenderingContext2D) => {
     ctx.fillStyle = baseColor;
@@ -304,10 +310,10 @@ export function createWebbingTextures(
     drawBraid(
       ctx,
       (over, shade) => {
-        const tint = base.clone().multiplyScalar(over ? shade : shade * 0.88);
-        return `rgb(${Math.round(tint.r * 255)},${Math.round(
-          tint.g * 255
-        )},${Math.round(tint.b * 255)})`;
+        const factor = over ? shade : shade * 0.88;
+        return `rgb(${Math.round(Math.min(255, baseR * factor))},${Math.round(
+          Math.min(255, baseG * factor)
+        )},${Math.round(Math.min(255, baseB * factor))})`;
       },
       1337
     );

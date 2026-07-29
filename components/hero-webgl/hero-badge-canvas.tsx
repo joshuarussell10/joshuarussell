@@ -81,7 +81,8 @@ export function HeroBadgeCanvas({
           fov: lanyardConfig.camera.fov,
         }}
         onCreated={({ gl }) => {
-          gl.toneMapping = THREE.ACESFilmicToneMapping;
+          // Neutral keeps blues from shifting magenta the way ACES Filmic does.
+          gl.toneMapping = THREE.NeutralToneMapping;
           gl.toneMappingExposure = 1.05;
         }}
         dpr={[1, 2]}
