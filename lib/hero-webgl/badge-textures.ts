@@ -423,7 +423,7 @@ function drawCardFront(
 
   // Header band, held below the punch slot.
   const headerTop = H * 0.128;
-  const headerHeight = H * 0.072;
+  const headerHeight = H * 0.085;
   const headerFill = ctx.createLinearGradient(0, headerTop, W, headerTop + headerHeight);
   headerFill.addColorStop(0, palette.accentDeep);
   headerFill.addColorStop(1, palette.accent);
@@ -444,7 +444,7 @@ function drawCardFront(
   ctx.fillText("JR", markX + markSize / 2, markY + markSize * 0.54);
 
   ctx.fillStyle = "rgba(255,255,255,0.95)";
-  ctx.font = `600 ${Math.round(H * 0.0178)}px ${fonts.mono}`;
+  ctx.font = `600 ${Math.round(H * 0.021)}px ${fonts.mono}`;
   ctx.textAlign = "left";
   tracked(
     ctx,
@@ -455,7 +455,7 @@ function drawCardFront(
   );
 
   ctx.fillStyle = "rgba(255,255,255,0.72)";
-  ctx.font = `500 ${Math.round(H * 0.0142)}px ${fonts.mono}`;
+  ctx.font = `500 ${Math.round(H * 0.0165)}px ${fonts.mono}`;
   tracked(
     ctx,
     identity.department.toUpperCase(),

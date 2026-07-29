@@ -214,8 +214,9 @@ export const lanyardPalettes = {
     cardCore: "#0a0a0a",
     cardBackground: "#000000",
     cardBackgroundEdge: "#000000",
-    accent: "#6366f1",
-    accentDeep: "#3730a3",
+    // Match HeroUI --accent (primary button): oklch(0.6204 0.195 253.83)
+    accent: "#0485f7",
+    accentDeep: "#004aa0",
     ink: "#f5f6fb",
     inkMuted: "#a5b0d0",
     inkFaint: "#6b7392",
@@ -236,8 +237,9 @@ export const lanyardPalettes = {
     cardCore: "#ffffff",
     cardBackground: "#f7f8fc",
     cardBackgroundEdge: "#e6e9f4",
-    accent: "#4f46e5",
-    accentDeep: "#312e81",
+    // Match HeroUI --accent (primary button): oklch(0.6204 0.195 253.83)
+    accent: "#0485f7",
+    accentDeep: "#004aa0",
     ink: "#111428",
     inkMuted: "#5b6280",
     inkFaint: "#9aa1bb",
