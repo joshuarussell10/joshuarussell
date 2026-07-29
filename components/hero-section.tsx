@@ -17,6 +17,14 @@ const HeroBadgeCanvas = dynamic(
   { ssr: false }
 );
 
+const HeroOrbsCanvas = dynamic(
+  () =>
+    import("@/components/hero-webgl/hero-orbs-canvas").then(
+      (mod) => mod.HeroOrbsCanvas
+    ),
+  { ssr: false }
+);
+
 function useLargeScreen() {
   const [isLarge, setIsLarge] = useState(false);
 
@@ -60,9 +68,17 @@ export function HeroSection() {
         aria-hidden
       />
 
+      {/* Full-bleed floating orbs — behind badge + copy */}
+      <div
+        className="pointer-events-none absolute inset-0 z-[1]"
+        aria-hidden
+      >
+        <HeroOrbsCanvas />
+      </div>
+
       {/* Full-height absolute canvas — out of flow, anchored to the viewport top */}
       {showBadge ? (
-        <div className="hero-visual pointer-events-none absolute inset-y-0 right-[5.5rem] z-[1] hidden w-[min(54%,700px)] lg:block xl:right-[6.5rem]">
+        <div className="hero-visual pointer-events-none absolute inset-y-0 right-[5.5rem] z-[2] hidden w-[min(54%,700px)] lg:block xl:right-[6.5rem]">
           <HeroBadgeCanvas
             mouse={mouse}
             interactive={interactive}
