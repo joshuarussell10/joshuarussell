@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@heroui/react";
 import { useHeroInteraction } from "@/components/hero-webgl/use-hero-interaction";
 import { RoleRotator } from "@/components/role-rotator";
-import { heroTagline, siteConfig } from "@/lib/data";
+import { heroTagline } from "@/lib/data";
 import { inter } from "@/lib/fonts";
 
 const HeroBadgeCanvas = dynamic(
@@ -93,20 +93,14 @@ export function HeroSection() {
             <h1
               className={`${inter.className} animate-fade-up text-center tracking-tighter lg:text-left`}
             >
-              <span className="bg-gradient-text block bg-[length:150%_100%] bg-clip-text bg-no-repeat text-5xl leading-tight font-semibold tracking-tighter text-transparent md:text-7xl">
-                {siteConfig.name}
-              </span>
+              <RoleRotator className="mx-auto lg:mx-0" />
             </h1>
 
-            <div className="animate-fade-up-delay-1 w-full ml-0">
-              <RoleRotator className="mx-auto lg:mx-0" />
-            </div>
-
-            <p className="animate-fade-up-delay-2 mt-2 max-w-xl text-center text-lg text-site-muted md:text-xl lg:text-left">
+            <p className="animate-fade-up-delay-1 mt-2 max-w-xl text-center text-lg text-site-muted md:text-xl lg:text-left">
               {heroTagline}
             </p>
 
-            <div className="animate-fade-up-delay-3 mt-8 flex w-full flex-wrap justify-center gap-4 lg:justify-start">
+            <div className="animate-fade-up-delay-2 mt-8 flex w-full flex-wrap justify-center gap-4 lg:justify-start">
               <Button
                 variant="primary"
                 size="lg"

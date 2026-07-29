@@ -42,17 +42,18 @@ export function RoleRotator({
   }, [reducedMotion]);
 
   return (
-    <p
-      className={`role-rotator max-w-xl text-xl font-medium text-site-accent md:text-2xl ${className}`}
+    <span
+      className={`role-rotator block text-5xl leading-tight font-semibold tracking-tighter md:text-7xl ${className}`}
       aria-live={mounted ? "polite" : "off"}
     >
       <span
-        className={
+        key={index}
+        className={`bg-gradient-text bg-[length:150%_100%] bg-clip-text bg-no-repeat text-transparent ${
           mounted && !visible ? "role-rotator-hidden" : "role-rotator-visible"
-        }
+        }`}
       >
         {heroRoles[index]}
       </span>
-    </p>
+    </span>
   );
 }
