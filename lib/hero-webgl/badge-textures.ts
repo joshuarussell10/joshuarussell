@@ -476,18 +476,18 @@ function drawCardFront(
   const nameY = photoY + photoH + H * 0.058;
   ctx.textAlign = "center";
   ctx.fillStyle = palette.ink;
-  ctx.font = `600 ${Math.round(H * 0.0405)}px ${fonts.sans}`;
+  ctx.font = `600 ${Math.round(H * 0.048)}px ${fonts.sans}`;
   ctx.fillText(identity.name, W / 2, nameY);
 
   ctx.fillStyle = palette.accent;
-  ctx.font = `500 ${Math.round(H * 0.0172)}px ${fonts.sans}`;
+  ctx.font = `500 ${Math.round(H * 0.0203)}px ${fonts.sans}`;
   const titleLines = wrapText(ctx, identity.title, W * 0.82);
   titleLines.forEach((line, index) => {
-    ctx.fillText(line, W / 2, nameY + H * 0.036 + index * H * 0.023);
+    ctx.fillText(line, W / 2, nameY + H * 0.04 + index * H * 0.026);
   });
 
   // Hairline above the data block.
-  const dataTop = nameY + H * 0.036 + titleLines.length * H * 0.023 + H * 0.022;
+  const dataTop = nameY + H * 0.04 + titleLines.length * H * 0.026 + H * 0.022;
   ctx.strokeStyle = palette.hairline;
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -502,28 +502,28 @@ function drawCardFront(
   ];
 
   rows.forEach(([labelA, valueA, labelB, valueB], index) => {
-    const rowY = dataTop + H * 0.032 + index * H * 0.044;
+    const rowY = dataTop + H * 0.034 + index * H * 0.048;
     ctx.textAlign = "left";
-    ctx.font = `500 ${Math.round(H * 0.0114)}px ${fonts.mono}`;
+    ctx.font = `500 ${Math.round(H * 0.0135)}px ${fonts.mono}`;
     ctx.fillStyle = palette.inkFaint;
     tracked(ctx, labelA, W * 0.1, rowY, 1.8);
-    ctx.font = `500 ${Math.round(H * 0.0155)}px ${fonts.mono}`;
+    ctx.font = `500 ${Math.round(H * 0.0183)}px ${fonts.mono}`;
     ctx.fillStyle = palette.ink;
-    ctx.fillText(valueA, W * 0.1, rowY + H * 0.0215);
+    ctx.fillText(valueA, W * 0.1, rowY + H * 0.024);
 
     ctx.textAlign = "right";
-    ctx.font = `500 ${Math.round(H * 0.0114)}px ${fonts.mono}`;
+    ctx.font = `500 ${Math.round(H * 0.0135)}px ${fonts.mono}`;
     ctx.fillStyle = palette.inkFaint;
     tracked(ctx, labelB, W * 0.9, rowY, 1.8, "right");
-    ctx.font = `500 ${Math.round(H * 0.0155)}px ${fonts.mono}`;
+    ctx.font = `500 ${Math.round(H * 0.0183)}px ${fonts.mono}`;
     ctx.fillStyle = palette.ink;
-    ctx.fillText(valueB, W * 0.9, rowY + H * 0.0215);
+    ctx.fillText(valueB, W * 0.9, rowY + H * 0.024);
   });
 
   // Microprint security line.
   ctx.textAlign = "center";
   ctx.fillStyle = palette.inkFaint;
-  ctx.font = `400 ${Math.round(H * 0.0066)}px ${fonts.mono}`;
+  ctx.font = `400 ${Math.round(H * 0.0078)}px ${fonts.mono}`;
   ctx.globalAlpha = 0.7;
   tracked(
     ctx,
@@ -538,7 +538,7 @@ function drawCardFront(
   // Barcode.
   drawBarcode(ctx, W * 0.1, H * 0.893, W * 0.8, H * 0.038, palette.ink, 20260726);
   ctx.fillStyle = palette.inkMuted;
-  ctx.font = `500 ${Math.round(H * 0.0105)}px ${fonts.mono}`;
+  ctx.font = `500 ${Math.round(H * 0.0124)}px ${fonts.mono}`;
   tracked(ctx, identity.idNumber.replace(/[^A-Z0-9]/gi, ""), W / 2, H * 0.945, 4, "center");
 
   // Footer accent band.
@@ -598,7 +598,7 @@ function drawCardBack(
   ctx.restore();
 
   ctx.fillStyle = "rgba(30,35,60,0.72)";
-  ctx.font = `500 ${Math.round(H * 0.0092)}px ${fonts.mono}`;
+  ctx.font = `500 ${Math.round(H * 0.0109)}px ${fonts.mono}`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   tracked(ctx, "AUTHORISED SIGNATURE", W * 0.075, signY + signH * 0.82, 1.6);
@@ -640,46 +640,46 @@ function drawCardBack(
   const textX = qrX + qrSize + W * 0.06;
   ctx.textAlign = "left";
   ctx.fillStyle = palette.inkFaint;
-  ctx.font = `500 ${Math.round(H * 0.0104)}px ${fonts.mono}`;
+  ctx.font = `500 ${Math.round(H * 0.0123)}px ${fonts.mono}`;
   tracked(ctx, "VERIFY", textX, qrY + H * 0.008, 1.8);
 
   ctx.fillStyle = palette.inkMuted;
-  ctx.font = `400 ${Math.round(H * 0.0122)}px ${fonts.sans}`;
+  ctx.font = `400 ${Math.round(H * 0.0144)}px ${fonts.sans}`;
   const verifyLines = wrapText(
     ctx,
     `Scan to confirm this credential at ${identity.organisation}.`,
     W * 0.44
   );
   verifyLines.forEach((line, index) => {
-    ctx.fillText(line, textX, qrY + H * 0.032 + index * H * 0.019);
+    ctx.fillText(line, textX, qrY + H * 0.036 + index * H * 0.022);
   });
 
   // Fine print.
   const termsY = qrY + qrSize + H * 0.06;
   ctx.fillStyle = palette.inkFaint;
-  ctx.font = `500 ${Math.round(H * 0.0098)}px ${fonts.mono}`;
+  ctx.font = `500 ${Math.round(H * 0.0116)}px ${fonts.mono}`;
   tracked(ctx, "CONDITIONS OF USE", W * 0.07, termsY, 1.8);
 
   ctx.fillStyle = palette.inkMuted;
-  ctx.font = `400 ${Math.round(H * 0.0116)}px ${fonts.sans}`;
+  ctx.font = `400 ${Math.round(H * 0.0137)}px ${fonts.sans}`;
   const terms = wrapText(
     ctx,
     "This card remains the property of the issuer and is non-transferable. It must be worn visibly at all times on site and surrendered on request.",
     W * 0.86
   );
   terms.forEach((line, index) => {
-    ctx.fillText(line, W * 0.07, termsY + H * 0.026 + index * H * 0.0182);
+    ctx.fillText(line, W * 0.07, termsY + H * 0.03 + index * H * 0.021);
   });
 
-  const foundY = termsY + H * 0.026 + terms.length * H * 0.0182 + H * 0.022;
+  const foundY = termsY + H * 0.03 + terms.length * H * 0.021 + H * 0.022;
   ctx.fillStyle = palette.inkFaint;
-  ctx.font = `400 ${Math.round(H * 0.0108)}px ${fonts.sans}`;
+  ctx.font = `400 ${Math.round(H * 0.0127)}px ${fonts.sans}`;
   ctx.fillText(`If found, return to ${identity.email}`, W * 0.07, foundY);
 
   drawBarcode(ctx, W * 0.07, H * 0.905, W * 0.86, H * 0.03, palette.inkMuted, 55123);
 
   ctx.fillStyle = palette.inkFaint;
-  ctx.font = `500 ${Math.round(H * 0.0092)}px ${fonts.mono}`;
+  ctx.font = `500 ${Math.round(H * 0.0109)}px ${fonts.mono}`;
   ctx.textAlign = "center";
   tracked(
     ctx,
