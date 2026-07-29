@@ -71,8 +71,19 @@ export function Navbar() {
       }`}
     >
       <nav className="mx-auto flex h-[84px] max-w-6xl items-center justify-between px-6 md:px-8">
-        <Link href="/" className="nav-logo font-mono text-sm tracking-tight">
-          {siteConfig.domain}
+        <Link
+          href="/"
+          className="nav-logo inline-flex shrink-0 items-center"
+          aria-label={siteConfig.name}
+        >
+          <img
+            src="/images/jr-logo.svg"
+            alt=""
+            width={56}
+            height={56}
+            className="h-14 w-14"
+            decoding="async"
+          />
         </Link>
 
         <div className="hidden items-center gap-3 md:flex">

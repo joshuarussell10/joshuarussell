@@ -256,12 +256,11 @@ body {
 }
 
 .nav-logo {
-  color: color-mix(in oklch, var(--site-fg) 90%, transparent);
-  transition: color 0.2s ease;
+  transition: opacity 0.2s ease;
 }
 
 .nav-logo:hover {
-  color: var(--site-fg);
+  opacity: 0.85;
 }
 
 .nav-menu-line {
