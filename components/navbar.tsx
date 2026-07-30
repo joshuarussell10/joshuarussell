@@ -70,19 +70,15 @@ export function Navbar() {
           : "bg-transparent"
       }`}
     >
-      <nav className="mx-auto flex h-[84px] max-w-6xl items-center justify-between px-6 md:px-8">
+      <nav className="mx-auto flex h-[84px] max-w-6xl items-center justify-between px-3">
         <Link
           href="/"
           className="nav-logo inline-flex shrink-0 items-center"
           aria-label={siteConfig.name}
         >
-          <img
-            src="/images/jr-logo.svg"
-            alt=""
-            width={432}
-            height={50}
-            className="nav-logo-img h-9 w-auto md:h-10"
-            decoding="async"
+          <span
+            className="nav-logo-img block h-9 aspect-[313/50] md:h-10"
+            aria-hidden
           />
         </Link>
 
