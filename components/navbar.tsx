@@ -77,7 +77,7 @@ export function Navbar() {
           aria-label={siteConfig.name}
         >
           <span
-            className="nav-logo-img block h-9 aspect-[313/50] md:h-10"
+            className="nav-logo-img block h-7 aspect-[313/50] md:h-8"
             aria-hidden
           />
         </Link>
