@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
@@ -62,6 +62,18 @@ export function Navbar() {
     router.push(href);
   }
 
+  function goHome(event: MouseEvent<HTMLAnchorElement>) {
+    setMenuOpen(false);
+
+    if (pathname === "/") {
+      event.preventDefault();
+      if (window.location.hash) {
+        window.history.pushState(null, "", "/");
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
@@ -73,6 +85,7 @@ export function Navbar() {
       <nav className="mx-auto flex h-[84px] max-w-6xl items-center justify-between px-3">
         <Link
           href="/"
+          onClick={goHome}
           className="nav-logo inline-flex shrink-0 items-center"
           aria-label={siteConfig.name}
         >
