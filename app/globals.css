@@ -265,11 +265,13 @@ body {
 
 .nav-logo-img {
   object-fit: contain;
-  filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.18));
+  filter:
+    drop-shadow(0 0 0.5px oklch(0 0 0 / 0.2))
+    drop-shadow(0 1px 3px oklch(0 0 0 / 0.16));
 }
 
 .dark .nav-logo-img {
-  filter: drop-shadow(0 1px 3px oklch(0 0 0 / 0.45));
+  filter: drop-shadow(0 2px 6px oklch(0 0 0 / 0.55));
 }
 
 .nav-menu-line {
