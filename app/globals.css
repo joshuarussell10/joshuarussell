@@ -260,18 +260,36 @@ body {
 }
 
 .nav-logo:hover {
-  opacity: 0.85;
+  opacity: 0.72;
 }
 
-.nav-logo-img {
-  object-fit: contain;
-  filter:
-    drop-shadow(0 0 0.5px oklch(0 0 0 / 0.2))
-    drop-shadow(0 1px 3px oklch(0 0 0 / 0.16));
+.nav-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  color: var(--site-fg);
+  line-height: 1;
 }
 
-.dark .nav-logo-img {
-  filter: drop-shadow(0 2px 6px oklch(0 0 0 / 0.55));
+.nav-wordmark-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--site-accent);
+}
+
+.nav-wordmark-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+@media (min-width: 768px) {
+  .nav-wordmark-name {
+    font-size: 1.625rem;
+  }
 }
 
 .nav-menu-line {
