@@ -264,13 +264,12 @@ body {
 }
 
 .nav-logo-img {
-  background-color: color-mix(in oklch, var(--site-fg) 85%, transparent);
-  -webkit-mask: url("/images/jr-logo.svg") left center / contain no-repeat;
-  mask: url("/images/jr-logo.svg") left center / contain no-repeat;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.18));
 }
 
 .dark .nav-logo-img {
-  background-color: var(--site-fg);
+  filter: drop-shadow(0 1px 3px oklch(0 0 0 / 0.45));
 }
 
 .nav-menu-line {

@@ -89,8 +89,12 @@ export function Navbar() {
           className="nav-logo inline-flex shrink-0 items-center"
           aria-label={siteConfig.name}
         >
-          <span
-            className="nav-logo-img block h-7 aspect-[313/50] md:h-8"
+          <img
+            src="/images/jr-logo.svg"
+            alt=""
+            width={64}
+            height={64}
+            className="nav-logo-img block size-14 md:size-16"
             aria-hidden
           />
         </Link>
