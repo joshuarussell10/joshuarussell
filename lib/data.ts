@@ -20,7 +20,7 @@ export const siteConfig = {
   email: "hello@joshuarussell.com",
   location: "Available for remote contracts",
   social: {
-    github: "https://github.com/joshuarussell",
+    github: "https://github.com/joshuarussell10",
   },
   availability: "Open to contract work",
 };
