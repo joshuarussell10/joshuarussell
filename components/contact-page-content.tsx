@@ -6,16 +6,79 @@ import { Button, Card, Input, Label, TextArea, TextField } from "@heroui/react";
 import { buildMailtoUrl } from "@/lib/mailto";
 import { contactPage, siteConfig } from "@/lib/data";
 
-type GetInTouchFormProps = {
+function ContactBackLink({ href = "/contact", label = "← Back to contact" }: { href?: string; label?: string }) {
+  return (
+    <Link
+      href={href}
+      className="mb-6 inline-block font-mono text-xs uppercase tracking-widest text-site-faint transition hover:text-site-subtle"
+    >
+      {label}
+    </Link>
+  );
+}
+
+function ContactPageHeader({
+  eyebrow,
+  title,
+  description,
+  backHref,
+  backLabel,
+}: {
+  eyebrow: string;
   title: string;
   description: string;
+  backHref?: string;
+  backLabel?: string;
+}) {
+  return (
+    <div className="mb-12 max-w-2xl">
+      <ContactBackLink href={backHref} label={backLabel} />
+      <p className="mb-3 font-mono text-sm uppercase tracking-widest text-site-accent">
+        {eyebrow}
+      </p>
+      <h1 className="mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
+        {title}
+      </h1>
+      <p className="text-lg text-site-muted">{description}</p>
+    </div>
+  );
+}
+
+function ContactFooterLinks() {
+  return (
+    <div className="mt-12 flex flex-wrap gap-6 text-sm text-site-subtle">
+      <a
+        href={`mailto:${siteConfig.email}`}
+        className="transition hover:text-[var(--site-fg)]"
+      >
+        {siteConfig.email}
+      </a>
+      <a
+        href={siteConfig.social.linkedin}
+        target="_blank"
+        rel="noreferrer"
+        className="transition hover:text-[var(--site-fg)]"
+      >
+        LinkedIn
+      </a>
+      <a
+        href={siteConfig.social.github}
+        target="_blank"
+        rel="noreferrer"
+        className="transition hover:text-[var(--site-fg)]"
+      >
+        GitHub
+      </a>
+    </div>
+  );
+}
+
+type GetInTouchFormProps = {
   subject: string;
   submitLabel: string;
 };
 
 function GetInTouchForm({
-  title,
-  description,
   subject,
   submitLabel,
 }: GetInTouchFormProps) {
@@ -45,14 +108,7 @@ function GetInTouchForm({
   };
 
   return (
-    <Card className="glass-panel h-full p-6 md:p-8">
-      <Card.Header className="mb-6 block">
-        <Card.Title className="text-2xl font-semibold">{title}</Card.Title>
-        <Card.Description className="mt-2 text-site-muted">
-          {description}
-        </Card.Description>
-      </Card.Header>
-
+    <Card className="glass-panel p-6 md:p-8">
       <Card.Content>
         <form className="space-y-5" onSubmit={handleSubmit}>
           <TextField fullWidth isRequired>
@@ -103,16 +159,12 @@ function GetInTouchForm({
 }
 
 type RequestResumeFormProps = {
-  title: string;
-  description: string;
   subject: string;
   submitLabel: string;
   downloadLabel: string;
 };
 
 function RequestResumeForm({
-  title,
-  description,
   subject,
   submitLabel,
   downloadLabel,
@@ -142,14 +194,7 @@ function RequestResumeForm({
   };
 
   return (
-    <Card className="glass-panel h-full p-6 md:p-8">
-      <Card.Header className="mb-6 block">
-        <Card.Title className="text-2xl font-semibold">{title}</Card.Title>
-        <Card.Description className="mt-2 text-site-muted">
-          {description}
-        </Card.Description>
-      </Card.Header>
-
+    <Card className="glass-panel p-6 md:p-8">
       <Card.Content>
         <form className="space-y-5" onSubmit={handleSubmit}>
           <TextField fullWidth isRequired>
@@ -211,56 +256,87 @@ function RequestResumeForm({
   );
 }
 
+const contactOptions = [
+  {
+    href: "/contact/get-in-touch",
+    title: contactPage.getInTouch.title,
+    description: contactPage.getInTouch.description,
+    cta: "Continue",
+  },
+  {
+    href: "/contact/request-resume",
+    title: contactPage.requestResume.title,
+    description: contactPage.requestResume.description,
+    cta: "Continue",
+  },
+] as const;
+
 export function ContactPageContent() {
   return (
     <main className="section-container pt-32 pb-24">
-      <div className="mb-12 max-w-2xl">
-        <Link
-          href="/"
-          className="mb-6 inline-block font-mono text-xs uppercase tracking-widest text-site-faint transition hover:text-site-subtle"
-        >
-          ← Back to home
-        </Link>
-        <p className="mb-3 font-mono text-sm uppercase tracking-widest text-site-accent">
-          Contact
-        </p>
-        <h1 className="mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
-          {contactPage.title}
-        </h1>
-        <p className="text-lg text-site-muted">{contactPage.description}</p>
+      <ContactPageHeader
+        eyebrow="Contact"
+        title={contactPage.title}
+        description={contactPage.description}
+        backHref="/"
+        backLabel="← Back to home"
+      />
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {contactOptions.map((option) => (
+          <Link
+            key={option.href}
+            href={option.href}
+            className="glass-panel group block p-6 transition md:p-8"
+          >
+            <h2 className="mb-3 text-2xl font-semibold tracking-tight">
+              {option.title}
+            </h2>
+            <p className="mb-8 text-site-muted">{option.description}</p>
+            <span className="font-mono text-xs uppercase tracking-widest text-site-accent transition group-hover:text-[var(--site-fg)]">
+              {option.cta} →
+            </span>
+          </Link>
+        ))}
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-2">
+      <ContactFooterLinks />
+    </main>
+  );
+}
+
+export function GetInTouchPageContent() {
+  return (
+    <main className="section-container pt-32 pb-24">
+      <ContactPageHeader
+        eyebrow="Contact"
+        title={contactPage.getInTouch.title}
+        description={contactPage.getInTouch.description}
+      />
+
+      <div className="mx-auto max-w-xl">
         <GetInTouchForm {...contactPage.getInTouch} />
-        <div id="request-resume">
-          <RequestResumeForm {...contactPage.requestResume} />
-        </div>
       </div>
 
-      <div className="mt-12 flex flex-wrap gap-6 text-sm text-site-subtle">
-        <a
-          href={`mailto:${siteConfig.email}`}
-          className="transition hover:text-[var(--site-fg)]"
-        >
-          {siteConfig.email}
-        </a>
-        <a
-          href={siteConfig.social.linkedin}
-          target="_blank"
-          rel="noreferrer"
-          className="transition hover:text-[var(--site-fg)]"
-        >
-          LinkedIn
-        </a>
-        <a
-          href={siteConfig.social.github}
-          target="_blank"
-          rel="noreferrer"
-          className="transition hover:text-[var(--site-fg)]"
-        >
-          GitHub
-        </a>
+      <ContactFooterLinks />
+    </main>
+  );
+}
+
+export function RequestResumePageContent() {
+  return (
+    <main className="section-container pt-32 pb-24">
+      <ContactPageHeader
+        eyebrow="Contact"
+        title={contactPage.requestResume.title}
+        description={contactPage.requestResume.description}
+      />
+
+      <div className="mx-auto max-w-xl">
+        <RequestResumeForm {...contactPage.requestResume} />
       </div>
+
+      <ContactFooterLinks />
     </main>
   );
 }

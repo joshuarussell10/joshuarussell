@@ -21,12 +21,12 @@ export function ContactSection() {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <Link href="/contact">
+              <Link href="/contact/get-in-touch">
                 <Button variant="primary" size="lg">
                   Get in touch
                 </Button>
               </Link>
-              <Link href="/contact#request-resume">
+              <Link href="/contact/request-resume">
                 <Button variant="secondary" size="lg">
                   Request resume
                 </Button>
