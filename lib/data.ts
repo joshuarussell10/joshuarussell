@@ -21,7 +21,6 @@ export const siteConfig = {
   location: "Available for remote contracts",
   social: {
     github: "https://github.com/joshuarussell",
-    linkedin: "https://linkedin.com/in/joshuarussell",
   },
   availability: "Open to contract work",
 };

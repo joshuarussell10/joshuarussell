@@ -19,14 +19,6 @@ export function Footer() {
             GitHub
           </a>
           <a
-            href={siteConfig.social.linkedin}
-            target="_blank"
-            rel="noreferrer"
-            className="transition hover:text-site-subtle"
-          >
-            LinkedIn
-          </a>
-          <a
             href="/contact"
             className="transition hover:text-site-subtle"
           >

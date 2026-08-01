@@ -50,19 +50,6 @@ export function ContactSection() {
             </div>
             <div>
               <p className="mb-1 font-mono text-xs uppercase tracking-widest text-site-faint">
-                LinkedIn
-              </p>
-              <a
-                href={siteConfig.social.linkedin}
-                target="_blank"
-                rel="noreferrer"
-                className="text-lg text-site-muted transition hover:text-[var(--site-fg)]"
-              >
-                {siteConfig.social.linkedin.replace("https://", "").replace("www.", "")}
-              </a>
-            </div>
-            <div>
-              <p className="mb-1 font-mono text-xs uppercase tracking-widest text-site-faint">
                 Status
               </p>
               <p className="text-lg text-site-success">

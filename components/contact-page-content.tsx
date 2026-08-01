@@ -284,14 +284,6 @@ export function ContactPageContent() {
 
       <div className="mt-12 flex flex-wrap gap-6 text-sm text-site-subtle">
         <a
-          href={siteConfig.social.linkedin}
-          target="_blank"
-          rel="noreferrer"
-          className="transition hover:text-[var(--site-fg)]"
-        >
-          LinkedIn
-        </a>
-        <a
           href={siteConfig.social.github}
           target="_blank"
           rel="noreferrer"
@@ -315,14 +307,14 @@ export function GetInTouchPageContent() {
           <DetailItem label="Status">
             <span className="text-site-success">{siteConfig.availability}</span>
           </DetailItem>
-          <DetailItem label="LinkedIn">
+          <DetailItem label="GitHub">
             <a
-              href={siteConfig.social.linkedin}
+              href={siteConfig.social.github}
               target="_blank"
               rel="noreferrer"
               className="transition hover:text-[var(--site-fg)]"
             >
-              {siteConfig.social.linkedin.replace("https://", "").replace("www.", "")}
+              {siteConfig.social.github.replace("https://", "")}
             </a>
           </DetailItem>
         </>
@@ -344,14 +336,14 @@ export function RequestResumePageContent() {
           <DetailItem label="Status">
             <span className="text-site-success">{siteConfig.availability}</span>
           </DetailItem>
-          <DetailItem label="LinkedIn">
+          <DetailItem label="GitHub">
             <a
-              href={siteConfig.social.linkedin}
+              href={siteConfig.social.github}
               target="_blank"
               rel="noreferrer"
               className="transition hover:text-[var(--site-fg)]"
             >
-              {siteConfig.social.linkedin.replace("https://", "").replace("www.", "")}
+              {siteConfig.social.github.replace("https://", "")}
             </a>
           </DetailItem>
         </>
