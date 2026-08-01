@@ -29,6 +29,12 @@ export const heroRoles = [
   "Software Engineer",
   "Web Developer",
   "Mobile Engineer",
+  "Frontend Engineer",
+  "Platform Engineer",
+  "Product Engineer",
+  "Infrastructure Engineer",
+  "Technical Lead",
+  "Fractional Engineer",
   "Full-stack Builder",
   "Systems Architect",
 ];
