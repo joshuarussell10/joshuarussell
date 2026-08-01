@@ -14,7 +14,7 @@ export type SkillGroup = {
 
 export const siteConfig = {
   name: "Joshua Russell",
-  title: "Software Engineer & Contract Developer",
+  title: "Software Engineer & Web Developer",
   domain: "joshuarussell.com",
   url: "https://joshuarussell.com",
   email: "hello@joshuarussell.com",
@@ -27,7 +27,7 @@ export const siteConfig = {
 
 export const heroRoles = [
   "Software Engineer",
-  "Contract Developer",
+  "Web Developer",
   "Full-stack Builder",
   "Systems Architect",
 ];
