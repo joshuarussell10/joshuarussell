@@ -1,75 +1,78 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Button, Card, Input, Label, TextArea, TextField } from "@heroui/react";
 import { buildMailtoUrl } from "@/lib/mailto";
 import { contactPage, siteConfig } from "@/lib/data";
 
-function ContactBackLink({ href = "/contact", label = "← Back to contact" }: { href?: string; label?: string }) {
+function ContactBackLink({
+  href = "/contact",
+  label = "← Back to contact",
+}: {
+  href?: string;
+  label?: string;
+}) {
   return (
     <Link
       href={href}
-      className="mb-6 inline-block font-mono text-xs uppercase tracking-widest text-site-faint transition hover:text-site-subtle"
+      className="mb-8 inline-block font-mono text-xs uppercase tracking-widest text-site-faint transition hover:text-site-subtle"
     >
       {label}
     </Link>
   );
 }
 
-function ContactPageHeader({
-  eyebrow,
-  title,
-  description,
-  backHref,
-  backLabel,
-}: {
-  eyebrow: string;
-  title: string;
-  description: string;
-  backHref?: string;
-  backLabel?: string;
-}) {
+function DetailItem({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="mb-12 max-w-2xl">
-      <ContactBackLink href={backHref} label={backLabel} />
-      <p className="mb-3 font-mono text-sm uppercase tracking-widest text-site-accent">
-        {eyebrow}
+    <div>
+      <p className="mb-1 font-mono text-xs uppercase tracking-widest text-site-faint">
+        {label}
       </p>
-      <h1 className="mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
-        {title}
-      </h1>
-      <p className="text-lg text-site-muted">{description}</p>
+      <div className="text-base text-site-muted">{children}</div>
     </div>
   );
 }
 
-function ContactFooterLinks() {
+function FormPageShell({
+  title,
+  description,
+  details,
+  children,
+}: {
+  title: string;
+  description: string;
+  details: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <div className="mt-12 flex flex-wrap gap-6 text-sm text-site-subtle">
-      <a
-        href={`mailto:${siteConfig.email}`}
-        className="transition hover:text-[var(--site-fg)]"
-      >
-        {siteConfig.email}
-      </a>
-      <a
-        href={siteConfig.social.linkedin}
-        target="_blank"
-        rel="noreferrer"
-        className="transition hover:text-[var(--site-fg)]"
-      >
-        LinkedIn
-      </a>
-      <a
-        href={siteConfig.social.github}
-        target="_blank"
-        rel="noreferrer"
-        className="transition hover:text-[var(--site-fg)]"
-      >
-        GitHub
-      </a>
-    </div>
+    <main className="section-container pt-28 pb-24 md:pt-32">
+      <ContactBackLink />
+
+      <Card className="glass-panel overflow-hidden">
+        <div className="grid md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+          <div className="border-site flex flex-col gap-8 border-b p-8 md:min-h-[32rem] md:justify-between md:gap-12 md:border-b-0 md:border-r md:p-10 lg:p-12">
+            <div>
+              <p className="mb-3 font-mono text-sm uppercase tracking-widest text-site-accent">
+                Contact
+              </p>
+              <h1 className="mb-4 text-3xl font-semibold tracking-tight md:text-4xl">
+                {title}
+              </h1>
+              <p className="max-w-sm text-site-muted">{description}</p>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-3 md:grid-cols-1 md:gap-5">
+              {details}
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-center p-8 md:p-10 lg:p-12">
+            {children}
+          </div>
+        </div>
+      </Card>
+    </main>
   );
 }
 
@@ -78,10 +81,7 @@ type GetInTouchFormProps = {
   submitLabel: string;
 };
 
-function GetInTouchForm({
-  subject,
-  submitLabel,
-}: GetInTouchFormProps) {
+function GetInTouchForm({ subject, submitLabel }: GetInTouchFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
@@ -108,53 +108,51 @@ function GetInTouchForm({
   };
 
   return (
-    <Card className="glass-panel p-6 md:p-8">
-      <Card.Content>
-        <form className="space-y-5" onSubmit={handleSubmit}>
-          <TextField fullWidth isRequired>
-            <Label>Name</Label>
-            <Input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Your name"
-            />
-          </TextField>
+    <form className="space-y-5" onSubmit={handleSubmit}>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <TextField fullWidth isRequired>
+          <Label>Name</Label>
+          <Input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Your name"
+          />
+        </TextField>
 
-          <TextField fullWidth isRequired>
-            <Label>Email</Label>
-            <Input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@company.com"
-            />
-          </TextField>
+        <TextField fullWidth isRequired>
+          <Label>Email</Label>
+          <Input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@company.com"
+          />
+        </TextField>
+      </div>
 
-          <TextField fullWidth>
-            <Label>Company</Label>
-            <Input
-              value={company}
-              onChange={(event) => setCompany(event.target.value)}
-              placeholder="Optional"
-            />
-          </TextField>
+      <TextField fullWidth>
+        <Label>Company</Label>
+        <Input
+          value={company}
+          onChange={(event) => setCompany(event.target.value)}
+          placeholder="Optional"
+        />
+      </TextField>
 
-          <TextField fullWidth isRequired>
-            <Label>Message</Label>
-            <TextArea
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              placeholder="Tell me about the project, timeline, and how I can help."
-              rows={5}
-            />
-          </TextField>
+      <TextField fullWidth isRequired>
+        <Label>Message</Label>
+        <TextArea
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          placeholder="Tell me about the project, timeline, and how I can help."
+          rows={6}
+        />
+      </TextField>
 
-          <Button type="submit" variant="primary" size="lg" fullWidth>
-            {submitLabel}
-          </Button>
-        </form>
-      </Card.Content>
-    </Card>
+      <Button type="submit" variant="primary" size="lg" fullWidth>
+        {submitLabel}
+      </Button>
+    </form>
   );
 }
 
@@ -194,65 +192,63 @@ function RequestResumeForm({
   };
 
   return (
-    <Card className="glass-panel p-6 md:p-8">
-      <Card.Content>
-        <form className="space-y-5" onSubmit={handleSubmit}>
-          <TextField fullWidth isRequired>
-            <Label>Name</Label>
-            <Input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Your name"
-            />
-          </TextField>
+    <form className="space-y-5" onSubmit={handleSubmit}>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <TextField fullWidth isRequired>
+          <Label>Name</Label>
+          <Input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Your name"
+          />
+        </TextField>
 
-          <TextField fullWidth isRequired>
-            <Label>Email</Label>
-            <Input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@company.com"
-            />
-          </TextField>
+        <TextField fullWidth isRequired>
+          <Label>Email</Label>
+          <Input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@company.com"
+          />
+        </TextField>
+      </div>
 
-          <TextField fullWidth>
-            <Label>Company or role</Label>
-            <Input
-              value={company}
-              onChange={(event) => setCompany(event.target.value)}
-              placeholder="Optional"
-            />
-          </TextField>
+      <TextField fullWidth>
+        <Label>Company or role</Label>
+        <Input
+          value={company}
+          onChange={(event) => setCompany(event.target.value)}
+          placeholder="Optional"
+        />
+      </TextField>
 
-          <TextField fullWidth>
-            <Label>Note</Label>
-            <TextArea
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              placeholder="Optional context for your request"
-              rows={4}
-            />
-          </TextField>
+      <TextField fullWidth>
+        <Label>Note</Label>
+        <TextArea
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          placeholder="Optional context for your request"
+          rows={5}
+        />
+      </TextField>
 
-          <div className="flex flex-col gap-3">
-            <Button type="submit" variant="primary" size="lg" fullWidth>
-              {submitLabel}
-            </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              fullWidth
-              onPress={() => {
-                window.open(siteConfig.resume.pdfUrl, "_blank", "noopener,noreferrer");
-              }}
-            >
-              {downloadLabel}
-            </Button>
-          </div>
-        </form>
-      </Card.Content>
-    </Card>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button type="submit" variant="primary" size="lg" className="flex-1">
+          {submitLabel}
+        </Button>
+        <Button
+          variant="secondary"
+          size="lg"
+          className="flex-1"
+          onPress={() => {
+            window.open(siteConfig.resume.pdfUrl, "_blank", "noopener,noreferrer");
+          }}
+        >
+          {downloadLabel}
+        </Button>
+      </div>
+    </form>
   );
 }
 
@@ -274,13 +270,17 @@ const contactOptions = [
 export function ContactPageContent() {
   return (
     <main className="section-container pt-32 pb-24">
-      <ContactPageHeader
-        eyebrow="Contact"
-        title={contactPage.title}
-        description={contactPage.description}
-        backHref="/"
-        backLabel="← Back to home"
-      />
+      <ContactBackLink href="/" label="← Back to home" />
+
+      <div className="mb-12 max-w-2xl">
+        <p className="mb-3 font-mono text-sm uppercase tracking-widest text-site-accent">
+          Contact
+        </p>
+        <h1 className="mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
+          {contactPage.title}
+        </h1>
+        <p className="text-lg text-site-muted">{contactPage.description}</p>
+      </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {contactOptions.map((option) => (
@@ -300,43 +300,84 @@ export function ContactPageContent() {
         ))}
       </div>
 
-      <ContactFooterLinks />
+      <div className="mt-12 flex flex-wrap gap-6 text-sm text-site-subtle">
+        <a
+          href={`mailto:${siteConfig.email}`}
+          className="transition hover:text-[var(--site-fg)]"
+        >
+          {siteConfig.email}
+        </a>
+        <a
+          href={siteConfig.social.linkedin}
+          target="_blank"
+          rel="noreferrer"
+          className="transition hover:text-[var(--site-fg)]"
+        >
+          LinkedIn
+        </a>
+        <a
+          href={siteConfig.social.github}
+          target="_blank"
+          rel="noreferrer"
+          className="transition hover:text-[var(--site-fg)]"
+        >
+          GitHub
+        </a>
+      </div>
     </main>
   );
 }
 
 export function GetInTouchPageContent() {
   return (
-    <main className="section-container pt-32 pb-24">
-      <ContactPageHeader
-        eyebrow="Contact"
-        title={contactPage.getInTouch.title}
-        description={contactPage.getInTouch.description}
-      />
-
-      <div className="mx-auto max-w-xl">
-        <GetInTouchForm {...contactPage.getInTouch} />
-      </div>
-
-      <ContactFooterLinks />
-    </main>
+    <FormPageShell
+      title={contactPage.getInTouch.title}
+      description={contactPage.getInTouch.description}
+      details={
+        <>
+          <DetailItem label="Email">
+            <a
+              href={`mailto:${siteConfig.email}`}
+              className="transition hover:text-[var(--site-fg)]"
+            >
+              {siteConfig.email}
+            </a>
+          </DetailItem>
+          <DetailItem label="Response">Usually within 1–2 business days</DetailItem>
+          <DetailItem label="Status">
+            <span className="text-site-success">{siteConfig.availability}</span>
+          </DetailItem>
+        </>
+      }
+    >
+      <GetInTouchForm {...contactPage.getInTouch} />
+    </FormPageShell>
   );
 }
 
 export function RequestResumePageContent() {
   return (
-    <main className="section-container pt-32 pb-24">
-      <ContactPageHeader
-        eyebrow="Contact"
-        title={contactPage.requestResume.title}
-        description={contactPage.requestResume.description}
-      />
-
-      <div className="mx-auto max-w-xl">
-        <RequestResumeForm {...contactPage.requestResume} />
-      </div>
-
-      <ContactFooterLinks />
-    </main>
+    <FormPageShell
+      title={contactPage.requestResume.title}
+      description={contactPage.requestResume.description}
+      details={
+        <>
+          <DetailItem label="Email">
+            <a
+              href={`mailto:${siteConfig.email}`}
+              className="transition hover:text-[var(--site-fg)]"
+            >
+              {siteConfig.email}
+            </a>
+          </DetailItem>
+          <DetailItem label="Delivery">PDF sent after a short intro</DetailItem>
+          <DetailItem label="Direct">
+            Prefer the fast path? Use download on the form.
+          </DetailItem>
+        </>
+      }
+    >
+      <RequestResumeForm {...contactPage.requestResume} />
+    </FormPageShell>
   );
 }
