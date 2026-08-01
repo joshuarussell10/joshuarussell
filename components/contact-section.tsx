@@ -37,17 +37,6 @@ export function ContactSection() {
           <div className="flex flex-col justify-center gap-6 p-8 md:p-12">
             <div>
               <p className="mb-1 font-mono text-xs uppercase tracking-widest text-site-faint">
-                Email
-              </p>
-              <a
-                href={`mailto:${siteConfig.email}`}
-                className="text-lg text-site-muted transition hover:text-[var(--site-fg)]"
-              >
-                {siteConfig.email}
-              </a>
-            </div>
-            <div>
-              <p className="mb-1 font-mono text-xs uppercase tracking-widest text-site-faint">
                 GitHub
               </p>
               <a
@@ -57,6 +46,19 @@ export function ContactSection() {
                 className="text-lg text-site-muted transition hover:text-[var(--site-fg)]"
               >
                 {siteConfig.social.github.replace("https://", "")}
+              </a>
+            </div>
+            <div>
+              <p className="mb-1 font-mono text-xs uppercase tracking-widest text-site-faint">
+                LinkedIn
+              </p>
+              <a
+                href={siteConfig.social.linkedin}
+                target="_blank"
+                rel="noreferrer"
+                className="text-lg text-site-muted transition hover:text-[var(--site-fg)]"
+              >
+                {siteConfig.social.linkedin.replace("https://", "").replace("www.", "")}
               </a>
             </div>
             <div>

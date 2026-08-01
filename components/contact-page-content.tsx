@@ -288,12 +288,6 @@ export function ContactPageContent() {
 
       <div className="mt-12 flex flex-wrap gap-6 text-sm text-site-subtle">
         <a
-          href={`mailto:${siteConfig.email}`}
-          className="transition hover:text-[var(--site-fg)]"
-        >
-          {siteConfig.email}
-        </a>
-        <a
           href={siteConfig.social.linkedin}
           target="_blank"
           rel="noreferrer"
@@ -321,17 +315,19 @@ export function GetInTouchPageContent() {
       description={contactPage.getInTouch.description}
       details={
         <>
-          <DetailItem label="Email">
-            <a
-              href={`mailto:${siteConfig.email}`}
-              className="transition hover:text-[var(--site-fg)]"
-            >
-              {siteConfig.email}
-            </a>
-          </DetailItem>
           <DetailItem label="Response">Usually within 1–2 business days</DetailItem>
           <DetailItem label="Status">
             <span className="text-site-success">{siteConfig.availability}</span>
+          </DetailItem>
+          <DetailItem label="LinkedIn">
+            <a
+              href={siteConfig.social.linkedin}
+              target="_blank"
+              rel="noreferrer"
+              className="transition hover:text-[var(--site-fg)]"
+            >
+              {siteConfig.social.linkedin.replace("https://", "").replace("www.", "")}
+            </a>
           </DetailItem>
         </>
       }
@@ -348,17 +344,19 @@ export function RequestResumePageContent() {
       description={contactPage.requestResume.description}
       details={
         <>
-          <DetailItem label="Email">
-            <a
-              href={`mailto:${siteConfig.email}`}
-              className="transition hover:text-[var(--site-fg)]"
-            >
-              {siteConfig.email}
-            </a>
-          </DetailItem>
           <DetailItem label="Delivery">PDF sent after a short intro</DetailItem>
           <DetailItem label="Status">
             <span className="text-site-success">{siteConfig.availability}</span>
+          </DetailItem>
+          <DetailItem label="LinkedIn">
+            <a
+              href={siteConfig.social.linkedin}
+              target="_blank"
+              rel="noreferrer"
+              className="transition hover:text-[var(--site-fg)]"
+            >
+              {siteConfig.social.linkedin.replace("https://", "").replace("www.", "")}
+            </a>
           </DetailItem>
         </>
       }

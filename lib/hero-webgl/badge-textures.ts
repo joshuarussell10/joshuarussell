@@ -10,7 +10,6 @@ export type BadgeIdentity = {
   clearance: string;
   issued: string;
   expires: string;
-  email: string;
 };
 
 export type BadgeTextureSet = {
@@ -674,7 +673,7 @@ function drawCardBack(
   const foundY = termsY + H * 0.03 + terms.length * H * 0.021 + H * 0.022;
   ctx.fillStyle = palette.inkFaint;
   ctx.font = `400 ${Math.round(H * 0.0127)}px ${fonts.sans}`;
-  ctx.fillText(`If found, return to ${identity.email}`, W * 0.07, foundY);
+  ctx.fillText("If found, return to issuer", W * 0.07, foundY);
 
   drawBarcode(ctx, W * 0.07, H * 0.905, W * 0.86, H * 0.03, palette.inkMuted, 55123);
 

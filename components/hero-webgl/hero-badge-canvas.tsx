@@ -64,7 +64,6 @@ export function HeroBadgeCanvas({
       clearance: "LEVEL 3",
       issued: "01 / 18",
       expires: "12 / 28",
-      email: siteConfig.email,
     }),
     []
   );

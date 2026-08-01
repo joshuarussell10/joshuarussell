@@ -32,12 +32,6 @@ export function Footer() {
           >
             Contact
           </a>
-          <a
-            href={`mailto:${siteConfig.email}`}
-            className="transition hover:text-site-subtle"
-          >
-            Email
-          </a>
         </div>
       </div>
     </footer>
