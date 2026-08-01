@@ -28,6 +28,7 @@ export const siteConfig = {
 export const heroRoles = [
   "Software Engineer",
   "Web Developer",
+  "Mobile Engineer",
   "Full-stack Builder",
   "Systems Architect",
 ];
