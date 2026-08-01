@@ -24,10 +24,6 @@ export const siteConfig = {
     linkedin: "https://linkedin.com/in/joshuarussell",
   },
   availability: "Open to contract work",
-  resume: {
-    pdfUrl: "/resume.pdf",
-    requestSubject: "Resume request — Joshua Russell",
-  },
 };
 
 export const heroRoles = [
@@ -125,9 +121,8 @@ export const contactPage = {
   requestResume: {
     title: "Request resume",
     description:
-      "Share a few details and I'll send over my resume. You can also download it directly if available.",
+      "Share a few details and I'll send over my resume.",
     subject: "Resume request — Joshua Russell",
     submitLabel: "Request resume",
-    downloadLabel: "Download resume",
   },
 };

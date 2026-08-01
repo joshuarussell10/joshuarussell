@@ -159,13 +159,11 @@ function GetInTouchForm({ subject, submitLabel }: GetInTouchFormProps) {
 type RequestResumeFormProps = {
   subject: string;
   submitLabel: string;
-  downloadLabel: string;
 };
 
 function RequestResumeForm({
   subject,
   submitLabel,
-  downloadLabel,
 }: RequestResumeFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -233,21 +231,9 @@ function RequestResumeForm({
         />
       </TextField>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button type="submit" variant="primary" size="lg" className="flex-1">
-          {submitLabel}
-        </Button>
-        <Button
-          variant="secondary"
-          size="lg"
-          className="flex-1"
-          onPress={() => {
-            window.open(siteConfig.resume.pdfUrl, "_blank", "noopener,noreferrer");
-          }}
-        >
-          {downloadLabel}
-        </Button>
-      </div>
+      <Button type="submit" variant="primary" size="lg" fullWidth>
+        {submitLabel}
+      </Button>
     </form>
   );
 }
@@ -371,8 +357,8 @@ export function RequestResumePageContent() {
             </a>
           </DetailItem>
           <DetailItem label="Delivery">PDF sent after a short intro</DetailItem>
-          <DetailItem label="Direct">
-            Prefer the fast path? Use download on the form.
+          <DetailItem label="Status">
+            <span className="text-site-success">{siteConfig.availability}</span>
           </DetailItem>
         </>
       }
