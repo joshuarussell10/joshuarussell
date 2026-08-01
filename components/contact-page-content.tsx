@@ -109,26 +109,24 @@ function GetInTouchForm({ subject, submitLabel }: GetInTouchFormProps) {
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <TextField fullWidth isRequired>
-          <Label>Name</Label>
-          <Input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Your name"
-          />
-        </TextField>
+      <TextField fullWidth isRequired>
+        <Label>Name</Label>
+        <Input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Your name"
+        />
+      </TextField>
 
-        <TextField fullWidth isRequired>
-          <Label>Email</Label>
-          <Input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="you@company.com"
-          />
-        </TextField>
-      </div>
+      <TextField fullWidth isRequired>
+        <Label>Email</Label>
+        <Input
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="you@company.com"
+        />
+      </TextField>
 
       <TextField fullWidth>
         <Label>Company</Label>
@@ -191,26 +189,24 @@ function RequestResumeForm({
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <TextField fullWidth isRequired>
-          <Label>Name</Label>
-          <Input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Your name"
-          />
-        </TextField>
+      <TextField fullWidth isRequired>
+        <Label>Name</Label>
+        <Input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Your name"
+        />
+      </TextField>
 
-        <TextField fullWidth isRequired>
-          <Label>Email</Label>
-          <Input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="you@company.com"
-          />
-        </TextField>
-      </div>
+      <TextField fullWidth isRequired>
+        <Label>Email</Label>
+        <Input
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="you@company.com"
+        />
+      </TextField>
 
       <TextField fullWidth>
         <Label>Company or role</Label>
