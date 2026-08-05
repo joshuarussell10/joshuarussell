@@ -12,12 +12,12 @@ export function ProjectsSection() {
             Selected Work
           </p>
           <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
-            Projects I&apos;ve delivered for clients
+            Projects I&apos;ve shipped
           </h2>
         </div>
         <p className="max-w-sm text-sm text-site-faint">
-          Representative contract engagements. Details anonymized where required
-          by NDAs.
+          Selected work across product and platform. Details anonymized where
+          required by NDAs.
         </p>
       </div>
 

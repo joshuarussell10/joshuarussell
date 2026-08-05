@@ -18,11 +18,11 @@ export const siteConfig = {
   domain: "joshuarussell.com",
   url: "https://joshuarussell.com",
   email: "hello@joshuarussell.com",
-  location: "Available for remote contracts",
+  location: "Available for remote work",
   social: {
     github: "https://github.com/joshuarussell10",
   },
-  availability: "Open to contract work",
+  availability: "Open to new opportunities",
 };
 
 export const heroRoles = [
@@ -34,7 +34,6 @@ export const heroRoles = [
   "Product Engineer",
   "Infrastructure Engineer",
   "Technical Lead",
-  "Fractional Engineer",
   "Full-stack Builder",
   "Systems Architect",
 ];
@@ -45,9 +44,9 @@ export const heroTagline =
 export const aboutContent = {
   headline: "I build software that ships and scales.",
   paragraphs: [
-    "I'm a software engineer and independent contractor who partners with teams to deliver production-ready systems — from greenfield products to critical refactors.",
+    "I'm a software engineer who partners with teams to deliver production-ready systems — from greenfield products to critical refactors.",
     "I work across the stack with a bias toward clarity: readable code, predictable architecture, and interfaces that feel fast even when the problem space is complex.",
-    "Whether you need a focused sprint, ongoing fractional engineering, or help unblocking a high-stakes launch, I bring senior-level execution without the overhead of a large agency.",
+    "Whether you need a focused sprint, ongoing collaboration, or help unblocking a high-stakes launch, I bring senior-level execution without the overhead.",
   ],
   highlights: [
     { label: "8+ years", detail: "Building production software" },
@@ -60,30 +59,30 @@ export const projects: Project[] = [
   {
     title: "Platform Migration",
     description:
-      "Led a legacy monolith to microservices migration for a fintech client, reducing deploy times by 70% and improving incident recovery.",
+      "Led a legacy monolith to microservices migration for a fintech team, reducing deploy times by 70% and improving incident recovery.",
     tags: ["TypeScript", "Node.js", "AWS", "PostgreSQL"],
-    highlight: "Contract · 6 months",
+    highlight: "Project · 6 months",
   },
   {
     title: "Design System & App Shell",
     description:
       "Built a component library and application shell used across three product lines, cutting feature delivery time and UI inconsistency.",
     tags: ["React", "Next.js", "Storybook", "Tailwind"],
-    highlight: "Contract · 4 months",
+    highlight: "Project · 4 months",
   },
   {
     title: "Real-time Analytics Dashboard",
     description:
       "Shipped a WebSocket-backed analytics dashboard processing 50k+ events/min with sub-second updates and role-based access control.",
     tags: ["React", "Go", "Redis", "WebSockets"],
-    highlight: "Contract · 3 months",
+    highlight: "Project · 3 months",
   },
   {
     title: "API Gateway & Developer Portal",
     description:
       "Designed and implemented an API gateway with OAuth2, rate limiting, and a self-serve developer portal for external integrators.",
     tags: ["Python", "FastAPI", "Kubernetes", "OpenAPI"],
-    highlight: "Contract · 5 months",
+    highlight: "Project · 5 months",
   },
 ];
 
@@ -116,11 +115,11 @@ export const navLinks = [
 export const contactPage = {
   title: "Let's connect",
   description:
-    "Whether you're exploring a contract engagement or need my resume for a role, choose the option that fits and I'll get back to you.",
+    "Whether you're exploring a new project or need my resume for a role, choose the option that fits and I'll get back to you.",
   getInTouch: {
     title: "Get in touch",
     description:
-      "Reach out about contract work, fractional engineering, or a project you need help shipping.",
+      "Reach out about a role, collaboration, or a project you need help shipping.",
     subject: "Project inquiry — Joshua Russell",
     submitLabel: "Send message",
   },

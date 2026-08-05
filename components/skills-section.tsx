@@ -9,7 +9,7 @@ export function SkillsSection() {
           Skills
         </p>
         <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
-          Tools and disciplines I bring to engagements
+          Tools and disciplines I bring to projects
         </h2>
       </div>
 

@@ -20,11 +20,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: "Joshua Russell — Software Engineer",
   description:
-    "Contract software engineer building reliable systems, polished interfaces, and thoughtful developer experiences.",
+    "Software engineer building reliable systems, polished interfaces, and thoughtful developer experiences.",
   openGraph: {
     title: "Joshua Russell — Software Engineer",
     description:
-      "Contract software engineer building reliable systems, polished interfaces, and thoughtful developer experiences.",
+      "Software engineer building reliable systems, polished interfaces, and thoughtful developer experiences.",
     type: "website",
     url: siteConfig.url,
     siteName: siteConfig.name,
